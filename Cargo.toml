@@ -1,0 +1,30 @@
+[workspace]
+members  = ["programs/*", "crates/*"]
+resolver = "2"
+
+[workspace.dependencies]
+anchor-lang = "=0.30.1"
+anchor-spl  = "=0.30.1"
+
+raydium-clmm-cpi = { path = "crates/raydium-clmm-cpi" }
+meteora-dlmm-cpi = { path = "crates/meteora-dlmm-cpi" }
+
+[workspace.lints.clippy]
+future_not_send         = { level = "allow", priority = 1 }
+module_name_repetitions = { level = "allow", priority = 1 }
+multiple_crate_versions = { level = "allow", priority = 1 }
+negative_feature_names  = { level = "allow", priority = 1 }
+
+all      = "deny"
+cargo    = "deny"
+nursery  = "deny"
+pedantic = "deny"
+
+[profile.release]
+overflow-checks = true
+lto             = "fat"
+codegen-units   = 1
+[profile.release.build-override]
+opt-level     = 3
+incremental   = false
+codegen-units = 1

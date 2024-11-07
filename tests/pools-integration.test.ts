@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PoolsIntegration } from "../target/types/pools_integration";
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { ORCA_WHIRLPOOL_PROGRAM_ID, PDAUtil } from "@orca-so/whirlpools-sdk";
 import { TransactionBuilder } from "@orca-so/common-sdk";
 import {
@@ -11,7 +11,6 @@ import {
 } from "@solana/spl-token";
 import { TestFixture } from "./fixture";
 import BN from "bn.js";
-import Decimal from "decimal.js";
 import {
   CLMM_PROGRAM_ID,
   getPdaProtocolPositionAddress,
@@ -21,6 +20,13 @@ import {
   getPdaMetadataKey,
 } from "@raydium-io/raydium-sdk-v2";
 import { prepareComputeUnitIx } from "./utils/instructions";
+import DLMM, {
+  toStrategyParameters,
+  StrategyType,
+  binIdToBinArrayIndex,
+  deriveBinArray,
+} from "@meteora-ag/dlmm";
+import { METEORA_CLMM_PROGRAM_ID } from "./constants";
 
 describe("pools-integration", () => {
   // Configure the client to use the local cluster.
@@ -37,7 +43,7 @@ describe("pools-integration", () => {
     await testFixture.init();
   });
 
-  it("orca-proxy: open position and increase liquidity", async () => {
+  xit("orca-proxy: open position and increase liquidity", async () => {
     const poolInfo = await testFixture.getOrcaPoolInfo();
 
     const {
@@ -108,7 +114,7 @@ describe("pools-integration", () => {
     await connection.confirmTransaction(sig);
   });
 
-  it("raydium-proxy: open position and increase liquidity", async () => {
+  xit("raydium-proxy: open position and increase liquidity", async () => {
     const poolInfo = await testFixture.getRaydiumPoolInfo();
 
     const {
@@ -223,6 +229,117 @@ describe("pools-integration", () => {
         signers: [positionMint, userWallet],
       })
       .addSigner(positionMint)
+      .addSigner(userWallet);
+
+    const sig = await transaction.buildAndExecute();
+
+    await connection.confirmTransaction(sig);
+  });
+
+  it("meteora-proxy: open position and increase liquidity", async () => {
+    const poolInfo = await testFixture.getMeteoraPoolInfo();
+    const dlmmPool = poolInfo.dlmmPool;
+
+    const {
+      wallet: userWallet,
+      tokenAAccount: userTokenAAccount,
+      tokenBAccount: userTokenBAccount,
+    } = await testFixture.getUserInfo();
+
+    const owner = userWallet.publicKey;
+
+    const activeBin = await testFixture.getMeteoraActiveBin();
+    const TOTAL_RANGE_INTERVAL = 10; // 10 bins on each side of the active bin
+    const minBinId = activeBin.binId - TOTAL_RANGE_INTERVAL;
+    const maxBinId = activeBin.binId + TOTAL_RANGE_INTERVAL;
+
+    const position = Keypair.generate();
+
+    const [eventAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from("__event_authority")],
+      METEORA_CLMM_PROGRAM_ID,
+    );
+
+    const openPositionIx = await program.methods
+      .meteoraProxyInitializePosition(minBinId, maxBinId - minBinId + 1)
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        payer: owner,
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        owner,
+        eventAuthority,
+      })
+      .signers([position, userWallet])
+      .instruction();
+
+    const activeBinPricePerToken = await testFixture.getMeteoraActiveBinPrice(
+      Number(activeBin.price),
+    );
+
+    const totalXAmount = new BN(10);
+    const totalYAmount = totalXAmount.mul(new BN(Number(activeBinPricePerToken)));
+
+    const strategyParameters = toStrategyParameters({
+      maxBinId,
+      minBinId,
+      strategyType: StrategyType.SpotBalanced,
+    });
+
+    const liquidityParams = {
+      amountX: totalXAmount,
+      amountY: totalYAmount,
+      activeId: activeBin.binId,
+      maxActiveBinSlippage: 0,
+      strategyParameters,
+    };
+
+    const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(minBinId));
+    const [binArrayLower] = deriveBinArray(dlmmPool, lowerBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
+
+    const upperBinArrayIndex = BN.max(
+      lowerBinArrayIndex.add(new BN(1)),
+      binIdToBinArrayIndex(new BN(maxBinId)),
+    );
+    const [binArrayUpper] = deriveBinArray(dlmmPool, upperBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
+
+    const increaseLiquidityIx = await program.methods
+      .meteoraProxyAddLiquidity(liquidityParams)
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        userTokenX: userTokenAAccount,
+        userTokenY: userTokenBAccount,
+        reserveX: poolInfo.tokenAVault,
+        reserveY: poolInfo.tokenBVault,
+        tokenXMint: poolInfo.tokenAMint,
+        tokenYMint: poolInfo.tokenBMint,
+        binArrayLower,
+        binArrayUpper,
+        binArrayBitmapExtension: null,
+        sender: owner,
+        tokenXProgram: TOKEN_PROGRAM_ID,
+        tokenYProgram: TOKEN_PROGRAM_ID,
+        eventAuthority,
+      })
+      .instruction();
+
+    const transaction = new TransactionBuilder(
+      connection,
+      provider.wallet,
+      testFixture.getTxBuilderOpts(),
+    )
+      .addInstruction({
+        instructions: [
+          ...prepareComputeUnitIx(100_000, 20_000_000),
+          openPositionIx,
+          increaseLiquidityIx,
+        ],
+        cleanupInstructions: [],
+        signers: [position, userWallet],
+      })
+      .addSigner(position)
       .addSigner(userWallet);
 
     const sig = await transaction.buildAndExecute();

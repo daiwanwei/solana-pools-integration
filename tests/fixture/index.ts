@@ -61,6 +61,7 @@ import DLMM, {
   deriveLbPair2,
   deriveReserve,
   StrategyType,
+  BinLiquidity,
 } from "@meteora-ag/dlmm";
 
 export class TestFixture {
@@ -547,11 +548,23 @@ export class TestFixture {
     return lpPairPubkey;
   }
 
+  async getMeteoraActiveBin(): Promise<BinLiquidity> {
+    const connection = this.getConnection();
+    const dlmmPool = await DLMM.create(connection, this.meteoraPoolInfo.dlmmPool);
+    return await dlmmPool.getActiveBin();
+  }
+
+  async getMeteoraActiveBinPrice(pricePerLamport: number): Promise<string> {
+    const connection = this.getConnection();
+    const dlmmPool = await DLMM.create(connection, this.meteoraPoolInfo.dlmmPool);
+    return dlmmPool.fromPricePerLamport(pricePerLamport);
+  }
+
   async addMeteoraLiquidity(lpPair: PublicKey, amount: BN, wallet?: Keypair): Promise<PublicKey> {
     const connection = this.getConnection();
     const dlmmPool = await DLMM.create(connection, lpPair);
 
-    const activeBin = await dlmmPool.getActiveBin();
+    const activeBin = await this.getMeteoraActiveBin();
 
     const TOTAL_RANGE_INTERVAL = 10; // 10 bins on each side of the active bin
     const minBinId = activeBin.binId - TOTAL_RANGE_INTERVAL;

@@ -4,7 +4,7 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
-use meteora_dlmm_cpi::LiquidityParameter;
+use meteora_dlmm_cpi::LiquidityParameterByStrategy;
 
 pub use constants::*;
 pub use instructions::*;
@@ -14,6 +14,7 @@ declare_id!("GFa3wVLJEFEcS8DS4ey4QKj71Ye9Eposbicr9DQf7aah");
 
 #[program]
 pub mod pools_integration {
+
     use super::*;
 
     pub fn orca_proxy_close_position(ctx: Context<OrcaProxyClosePosition>) -> Result<()> {
@@ -117,7 +118,7 @@ pub mod pools_integration {
 
     pub fn meteora_proxy_add_liquidity<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyModifyLiquidity<'info>>,
-        liquidity_params: LiquidityParameter,
+        liquidity_params: LiquidityParameterByStrategy,
     ) -> Result<()> {
         meteora_proxy_add_liquidity::handler(ctx, liquidity_params)
     }

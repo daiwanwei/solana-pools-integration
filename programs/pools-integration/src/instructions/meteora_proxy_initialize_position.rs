@@ -19,6 +19,9 @@ pub struct MeteoraProxyInitializePosition<'info> {
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
+
+    /// CHECK:
+    pub event_authority: UncheckedAccount<'info>,
 }
 
 pub fn handler<'a, 'b, 'c: 'info, 'info>(
@@ -34,6 +37,8 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         owner: ctx.accounts.owner.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
         rent: ctx.accounts.rent.to_account_info(),
+        event_authority: ctx.accounts.event_authority.to_account_info(),
+        program: ctx.accounts.dlmm_program.to_account_info(),
     };
     let cpi_context = CpiContext::new(cpi_program.to_account_info(), cpi_accounts)
         .with_remaining_accounts(ctx.remaining_accounts.to_vec());

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use meteora_dlmm_cpi::{cpi, program::LbClmm, LiquidityParameter};
+use meteora_dlmm_cpi::{cpi, program::LbClmm, LiquidityParameter, LiquidityParameterByStrategy};
 
 #[derive(Accounts)]
 pub struct MeteoraProxyModifyLiquidity<'info> {
@@ -46,11 +46,14 @@ pub struct MeteoraProxyModifyLiquidity<'info> {
     pub sender: Signer<'info>,
     pub token_x_program: Interface<'info, TokenInterface>,
     pub token_y_program: Interface<'info, TokenInterface>,
+
+    /// CHECK:
+    pub event_authority: UncheckedAccount<'info>,
 }
 
 pub fn handler<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyModifyLiquidity<'info>>,
-    liquidity_parameter: LiquidityParameter,
+    liquidity_parameter: LiquidityParameterByStrategy,
 ) -> Result<()> {
     let cpi_program = ctx.accounts.dlmm_program.to_account_info();
 
@@ -73,10 +76,12 @@ pub fn handler<'a, 'b, 'c, 'info>(
         sender: ctx.accounts.sender.to_account_info(),
         token_x_program: ctx.accounts.token_x_program.to_account_info(),
         token_y_program: ctx.accounts.token_y_program.to_account_info(),
+        event_authority: ctx.accounts.event_authority.to_account_info(),
+        program: ctx.accounts.dlmm_program.to_account_info(),
     };
 
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts)
         .with_remaining_accounts(ctx.remaining_accounts.to_vec());
 
-    cpi::add_liquidity(cpi_ctx, liquidity_parameter)
+    cpi::add_liquidity_by_strategy(cpi_ctx, liquidity_parameter)
 }

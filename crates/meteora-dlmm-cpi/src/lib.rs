@@ -20,9 +20,9 @@ pub mod lb_clmm {
         Ok(())
     }
 
-    pub fn add_liquidity<'a, 'b, 'c: 'info, 'info>(
+    pub fn add_liquidity_by_strategy<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, ModifyLiquidity<'info>>,
-        liquidity_parameter: LiquidityParameter,
+        liquidity_parameter: LiquidityParameterByStrategy,
     ) -> Result<()> {
         Ok(())
     }

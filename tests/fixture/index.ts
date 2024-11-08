@@ -91,6 +91,7 @@ export class TestFixture {
   }
 
   public async init(params: InitParams = defaultInitParams()): Promise<void> {
+    await sleep(1000);
     await this.initMints();
     await this.initUser();
 

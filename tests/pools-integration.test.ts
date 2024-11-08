@@ -6,7 +6,6 @@ import { ORCA_WHIRLPOOL_PROGRAM_ID, PDAUtil } from "@orca-so/whirlpools-sdk";
 import { TransactionBuilder } from "@orca-so/common-sdk";
 import {
   getAssociatedTokenAddressSync,
-  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { TestFixture } from "./fixture";
@@ -43,7 +42,7 @@ describe("pools-integration", () => {
     await testFixture.init();
   });
 
-  xit("orca-proxy: open position and increase liquidity", async () => {
+  it("orca-proxy: open position and increase liquidity", async () => {
     const poolInfo = await testFixture.getOrcaPoolInfo();
 
     const {
@@ -114,7 +113,7 @@ describe("pools-integration", () => {
     await connection.confirmTransaction(sig);
   });
 
-  xit("raydium-proxy: open position and increase liquidity", async () => {
+  it("raydium-proxy: open position and increase liquidity", async () => {
     const poolInfo = await testFixture.getRaydiumPoolInfo();
 
     const {

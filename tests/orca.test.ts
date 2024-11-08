@@ -22,7 +22,7 @@ describe("orca", () => {
   const whirlpoolCtx = WhirlpoolContext.withProvider(provider, ORCA_WHIRLPOOL_PROGRAM_ID);
   const fetcher = whirlpoolCtx.fetcher;
 
-  const testFixture = new TestFixture(anchor.getProvider() as anchor.AnchorProvider, whirlpoolCtx);
+  const testFixture = new TestFixture(provider as anchor.AnchorProvider, whirlpoolCtx);
 
   before(async () => {
     await testFixture.init();

@@ -595,7 +595,6 @@ export class TestFixture {
     rawTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
     const txHash = await this.sendAndConfirmTx2(rawTx, [position], wallet);
-
     return position.publicKey;
   }
 
@@ -711,6 +710,35 @@ export class TestFixture {
 
   getWallet() {
     return this.provider.wallet;
+  }
+
+  async getMeteoraPositionFee(
+    lpPair: PublicKey,
+    position: PublicKey,
+    userWallet?: PublicKey,
+  ): Promise<{
+    feeX: BN;
+    feeY: BN;
+  }> {
+    const user = userWallet || this.getWallet().publicKey;
+    const connection = this.getConnection();
+    const dlmmPool = await DLMM.create(connection, lpPair);
+    const { userPositions } = await dlmmPool.getPositionsByUserAndLbPair(user);
+
+    const res = userPositions.find((p) => {
+      return p.publicKey.equals(position);
+    });
+
+    if (!res) {
+      throw new Error("Position not found");
+    }
+
+    const { positionData } = res;
+
+    return {
+      feeX: positionData.feeX,
+      feeY: positionData.feeY,
+    };
   }
 }
 

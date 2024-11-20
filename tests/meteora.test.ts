@@ -17,6 +17,16 @@ describe("meteora", () => {
 
     const pool = await testFixture.getMeteoraPoolInfo();
 
-    await testFixture.addMeteoraLiquidity(pool.dlmmPool, new BN(1000), user.wallet);
+    const position = await testFixture.addMeteoraLiquidity(
+      pool.dlmmPool,
+      new BN(100000),
+      user.wallet,
+    );
+    const { feeX, feeY } = await testFixture.getMeteoraPositionFee(
+      pool.dlmmPool,
+      position,
+      user.wallet.publicKey,
+    );
+    console.log(`feeX: ${feeX.toString()}, feeY: ${feeY.toString()}`);
   });
 });

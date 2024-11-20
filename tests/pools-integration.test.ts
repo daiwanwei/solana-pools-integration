@@ -4,10 +4,7 @@ import { PoolsIntegration } from "../target/types/pools_integration";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { ORCA_WHIRLPOOL_PROGRAM_ID, PDAUtil } from "@orca-so/whirlpools-sdk";
 import { TransactionBuilder } from "@orca-so/common-sdk";
-import {
-  getAssociatedTokenAddressSync,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { TestFixture } from "./fixture";
 import BN from "bn.js";
 import {

@@ -24,6 +24,8 @@ import {
   getPdaPoolVaultId,
   TickUtils as RaydiumTickUtils,
   PositionInfoLayout,
+  PositionUtils,
+  TickArrayLayout,
 } from "@raydium-io/raydium-sdk-v2";
 import {
   TickUtil,
@@ -740,6 +742,44 @@ export class TestFixture {
       feeY: positionData.feeY,
     };
   }
+
+  async getRaydiumPositionFee(
+    pool: PublicKey,
+    position: PublicKey,
+  ): Promise<{
+    feeX: BN;
+    feeY: BN;
+  }> {
+    const rpcPoolData = await this.raydiumSdk.clmm.getRpcClmmPoolInfo({ poolId: pool });
+
+    const pos = await this.raydiumSdk.connection.getAccountInfo(position);
+    const positionAccount = PositionInfoLayout.decode(pos!.data);
+
+    const tickLowerState = await getTickState(
+      this.raydiumSdk,
+      pool,
+      positionAccount.tickLower,
+      rpcPoolData.tickSpacing,
+    );
+    const tickUpperState = await getTickState(
+      this.raydiumSdk,
+      pool,
+      positionAccount.tickUpper,
+      rpcPoolData.tickSpacing,
+    );
+
+    const tokenFees = PositionUtils.GetPositionFeesV2(
+      rpcPoolData,
+      positionAccount,
+      tickLowerState,
+      tickUpperState,
+    );
+
+    return {
+      feeX: tokenFees.tokenFeeAmountA,
+      feeY: tokenFees.tokenFeeAmountB,
+    };
+  }
 }
 
 export type InitParams = {
@@ -888,6 +928,31 @@ function generateDummyApiV3Token(mint: PublicKey): ApiV3Token {
     tags: [],
     extensions: {},
   };
+}
+
+async function getTickState(
+  raydiumSdk: Raydium,
+  poolId: PublicKey,
+  tick: number,
+  tickSpacing: number,
+): Promise<{
+  tick: number;
+  liquidityNet: BN;
+  liquidityGross: BN;
+  feeGrowthOutsideX64A: BN;
+  feeGrowthOutsideX64B: BN;
+  rewardGrowthsOutsideX64: BN[];
+}> {
+  const tickArrayAddress = RaydiumTickUtils.getTickArrayAddressByTick(
+    new PublicKey(CLMM_PROGRAM_ID),
+    poolId,
+    tick,
+    tickSpacing,
+  );
+  const tickArrayRes = await raydiumSdk.connection.getAccountInfo(tickArrayAddress);
+  if (!tickArrayRes) throw new Error("tick data not found");
+  const tickArray = TickArrayLayout.decode(tickArrayRes.data);
+  return tickArray.ticks[RaydiumTickUtils.getTickOffsetInArray(tick, tickSpacing)];
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

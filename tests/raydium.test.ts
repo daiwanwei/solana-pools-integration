@@ -17,6 +17,7 @@ describe("raydium", () => {
 
   it("open position and increase liquidty", async () => {
     const user = testFixture.getUserInfo();
+    const poolInfo = await testFixture.getRaydiumPoolInfo();
 
     const position = await testFixture.createRaydiumPoolPosition(
       new Decimal(5),
@@ -27,6 +28,10 @@ describe("raydium", () => {
     await sleep(1000);
 
     await testFixture.increaseRaydiumPoolLiquidity(position, new BN(1000), user.wallet);
+
+    const { feeX, feeY } = await testFixture.getRaydiumPositionFee(poolInfo.clmmPool, position);
+
+    console.log(`feeX: ${feeX.toString()}, feeY: ${feeY.toString()}`);
   });
 });
 

@@ -314,6 +314,34 @@ pub struct TickArrayState {
 
 impl TickArrayState {
     pub const LEN: usize = 8 + 32 + 4 + TickState::LEN * TICK_ARRAY_SIZE_USIZE + 1 + 115;
+
+    pub fn get_tick_state(&self, tick_index: i32, tick_spacing: u16) -> Result<&TickState> {
+        let offset_in_array = self.get_tick_offset_in_array(tick_index, tick_spacing)?;
+        Ok(&self.ticks[offset_in_array])
+    }
+
+    /// Get tick's offset in current tick array, tick must be include in tick array， otherwise throw an error
+    fn get_tick_offset_in_array(self, tick_index: i32, tick_spacing: u16) -> Result<usize> {
+        let start_tick_index = TickArrayState::get_array_start_index(tick_index, tick_spacing);
+        // require_eq!(start_tick_index, self.start_tick_index, ErrorCode::InvalidTickArray);
+        let offset_in_array =
+            ((tick_index - self.start_tick_index) / i32::from(tick_spacing)) as usize;
+        Ok(offset_in_array)
+    }
+
+    /// Input an arbitrary tick_index, output the start_index of the tick_array it sits on
+    pub fn get_array_start_index(tick_index: i32, tick_spacing: u16) -> i32 {
+        let ticks_in_array = TickArrayState::tick_count(tick_spacing);
+        let mut start = tick_index / ticks_in_array;
+        if tick_index < 0 && tick_index % ticks_in_array != 0 {
+            start = start - 1
+        }
+        start * ticks_in_array
+    }
+
+    pub fn tick_count(tick_spacing: u16) -> i32 {
+        TICK_ARRAY_SIZE * i32::from(tick_spacing)
+    }
 }
 
 #[zero_copy(unsafe)]

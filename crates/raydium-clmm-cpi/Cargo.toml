@@ -18,6 +18,7 @@ cpi            = ["no-entrypoint"]
 
 [dependencies]
 anchor-lang = { workspace = true }
+uint        = { git = "https://github.com/raydium-io/parity-common", package = "uint" }
 
 [lints]
 workspace = true

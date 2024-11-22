@@ -10,9 +10,11 @@ pub use orca_proxy_increase_liquidity::*;
 pub use orca_proxy_open_position::*;
 pub use orca_proxy_swap::*;
 
+pub mod raydium_log_position_fee;
 pub mod raydium_proxy_increase_liquidity;
 pub mod raydium_proxy_open_position;
 
+pub use raydium_log_position_fee::*;
 pub use raydium_proxy_increase_liquidity::*;
 pub use raydium_proxy_open_position::*;
 

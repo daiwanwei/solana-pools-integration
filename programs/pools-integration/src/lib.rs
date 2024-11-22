@@ -108,6 +108,12 @@ pub mod pools_integration {
         )
     }
 
+    pub fn raydium_log_position_fee<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, RaydiumLogPositionFee<'info>>,
+    ) -> Result<()> {
+        raydium_log_position_fee::handler(ctx)
+    }
+
     pub fn meteora_proxy_initialize_position<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyInitializePosition<'info>>,
         lower_bin_id: i32,

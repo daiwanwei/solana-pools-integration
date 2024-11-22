@@ -210,6 +210,16 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const logPositionFeeIx = await program.methods
+      .raydiumLogPositionFee()
+      .accounts({
+        poolState: poolInfo.clmmPool,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -220,6 +230,7 @@ describe("pools-integration", () => {
           ...prepareComputeUnitIx(100_000, 20_000_000),
           openPositionIx,
           increaseLiquidityIx,
+          logPositionFeeIx,
         ],
         cleanupInstructions: [],
         signers: [positionMint, userWallet],
@@ -230,6 +241,9 @@ describe("pools-integration", () => {
     const sig = await transaction.buildAndExecute();
 
     await connection.confirmTransaction(sig);
+
+    // const parsedTx = await connection.getParsedTransaction(sig, 'confirmed');
+    // console.log(parsedTx);
   });
 
   it("meteora-proxy: open position and increase liquidity", async () => {

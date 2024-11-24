@@ -335,6 +335,16 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const logPositionFeeIx = await program.methods
+      .meteoraLogPositionFee()
+      .accounts({
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        binArrayLower,
+        binArrayUpper,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -345,6 +355,7 @@ describe("pools-integration", () => {
           ...prepareComputeUnitIx(100_000, 20_000_000),
           openPositionIx,
           increaseLiquidityIx,
+          logPositionFeeIx,
         ],
         cleanupInstructions: [],
         signers: [position, userWallet],
@@ -355,5 +366,8 @@ describe("pools-integration", () => {
     const sig = await transaction.buildAndExecute();
 
     await connection.confirmTransaction(sig);
+
+    // const parsedTx = await connection.getParsedTransaction(sig, "confirmed");
+    // console.log(parsedTx);
   });
 });

@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
@@ -127,5 +128,9 @@ pub mod pools_integration {
         liquidity_params: LiquidityParameterByStrategy,
     ) -> Result<()> {
         meteora_proxy_add_liquidity::handler(ctx, liquidity_params)
+    }
+
+    pub fn meteora_log_position_fee(ctx: Context<MeteoraLogPositionFee>) -> Result<()> {
+        meteora_log_position_fee::handler(ctx)
     }
 }

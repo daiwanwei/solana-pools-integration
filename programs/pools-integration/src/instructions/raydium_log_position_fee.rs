@@ -4,6 +4,8 @@ use raydium_clmm_cpi::{
     utils::fee::{calculate_latest_token_fees, get_fee_growth_inside},
 };
 
+use crate::events::FeeLogEvent;
+
 #[derive(Accounts)]
 pub struct RaydiumLogPositionFee<'info> {
     /// Add liquidity for this pool
@@ -79,20 +81,7 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         ctx.accounts.personal_position.liquidity,
     );
 
-    emit!(FeeLogEvent {
-        fee_growth_inside_0_x64,
-        fee_growth_inside_1_x64,
-        token_fees_owed_0,
-        token_fees_owed_1,
-    });
+    emit!(FeeLogEvent { token_fees_0: token_fees_owed_0, token_fees_1: token_fees_owed_1 });
 
     Ok(())
-}
-
-#[event]
-pub struct FeeLogEvent {
-    pub fee_growth_inside_0_x64: u128,
-    pub fee_growth_inside_1_x64: u128,
-    pub token_fees_owed_0: u64,
-    pub token_fees_owed_1: u64,
 }

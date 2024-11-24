@@ -18,6 +18,10 @@ cpi            = ["no-entrypoint"]
 
 [dependencies]
 anchor-lang = { workspace = true }
+bytemuck    = { workspace = true, features = ["derive", "min_const_generics"] }
+num-traits  = "0.2.16"
+num-integer = "0.1.45"
+ruint       = "1.3.0"
 
 [lints]
 workspace = true

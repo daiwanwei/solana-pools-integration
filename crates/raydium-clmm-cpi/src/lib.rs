@@ -106,4 +106,22 @@ pub mod amm_v3 {
     ) -> Result<()> {
         Ok(())
     }
+
+    /// Decreases liquidity with a exist position, support Token2022
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` -  The context of accounts
+    /// * `liquidity` - The amount by which liquidity will be decreased
+    /// * `amount_0_min` - The minimum amount of token_0 that should be accounted for the burned liquidity
+    /// * `amount_1_min` - The minimum amount of token_1 that should be accounted for the burned liquidity
+    ///
+    pub fn decrease_liquidity_v2<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, DecreaseLiquidityV2<'info>>,
+        liquidity: u128,
+        amount_0_min: u64,
+        amount_1_min: u64,
+    ) -> Result<()> {
+        Ok(())
+    }
 }

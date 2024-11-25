@@ -256,3 +256,61 @@ pub struct IncreaseLiquidityV2<'info> {
     /// The mint of token vault 1
     pub vault_1_mint: Account<'info, AccountPlaceholder>,
 }
+
+#[derive(Accounts)]
+pub struct DecreaseLiquidityV2<'info> {
+    /// Pays to mint the position
+    pub nft_owner: Signer<'info>,
+
+    /// The token account for nft
+    pub nft_account: Account<'info, AccountPlaceholder>,
+
+    /// Increase liquidity for this position
+    #[account(mut)]
+    pub personal_position: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub pool_state: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub protocol_position: Account<'info, AccountPlaceholder>,
+
+    /// The address that holds pool tokens for token_0
+    #[account(mut)]
+    pub token_vault_0: Account<'info, AccountPlaceholder>,
+
+    /// The address that holds pool tokens for token_1
+    #[account(mut)]
+    pub token_vault_1: Account<'info, AccountPlaceholder>,
+
+    /// Stores init state for the lower tick
+    #[account(mut)]
+    pub tick_array_lower: Account<'info, AccountPlaceholder>,
+
+    /// Stores init state for the upper tick
+    #[account(mut)]
+    pub tick_array_upper: Account<'info, AccountPlaceholder>,
+
+    /// The destination token account for receive amount_0
+    #[account(mut)]
+    pub recipient_token_account_0: Account<'info, AccountPlaceholder>,
+
+    /// The destination token account for receive amount_1
+    #[account(mut)]
+    pub recipient_token_account_1: Account<'info, AccountPlaceholder>,
+
+    /// Program to create mint account and mint tokens
+    pub token_program: Account<'info, AccountPlaceholder>,
+
+    /// Token program 2022
+    pub token_program_2022: Account<'info, AccountPlaceholder>,
+
+    /// memo program
+    pub memo_program: Account<'info, AccountPlaceholder>,
+
+    /// The mint of token vault 0
+    pub vault_0_mint: Account<'info, AccountPlaceholder>,
+
+    /// The mint of token vault 1
+    pub vault_1_mint: Account<'info, AccountPlaceholder>,
+}

@@ -109,6 +109,15 @@ pub mod pools_integration {
         )
     }
 
+    pub fn raydium_proxy_decrease_liquidity<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, RaydiumProxyDecreaseLiquidity<'info>>,
+        liquidity: u128,
+        amount_0_min: u64,
+        amount_1_min: u64,
+    ) -> Result<()> {
+        raydium_proxy_decrease_liquidity::handler(ctx, liquidity, amount_0_min, amount_1_min)
+    }
+
     pub fn raydium_log_position_fee<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, RaydiumLogPositionFee<'info>>,
     ) -> Result<()> {

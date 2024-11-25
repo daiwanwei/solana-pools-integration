@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PoolsIntegration } from "../target/types/pools_integration";
 import { Keypair, PublicKey } from "@solana/web3.js";
+import { MEMO_PROGRAM_ID } from "@solana/spl-memo";
 import { ORCA_WHIRLPOOL_PROGRAM_ID, PDAUtil } from "@orca-so/whirlpools-sdk";
 import { TransactionBuilder } from "@orca-so/common-sdk";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -110,7 +111,7 @@ describe("pools-integration", () => {
     await connection.confirmTransaction(sig);
   });
 
-  it("raydium-proxy: open position and increase liquidity", async () => {
+  it("raydium-proxy: open position and increase/decrease liquidity", async () => {
     const poolInfo = await testFixture.getRaydiumPoolInfo();
 
     const {
@@ -220,6 +221,27 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const decreaseLiquidityIx = await program.methods
+      .raydiumProxyDecreaseLiquidity(new BN(10), new BN(0), new BN(0))
+      .accounts({
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftOwner: owner,
+        nftAccount: positionTokenAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -241,6 +263,22 @@ describe("pools-integration", () => {
     const sig = await transaction.buildAndExecute();
 
     await connection.confirmTransaction(sig);
+
+    const transaction2 = new TransactionBuilder(
+      connection,
+      provider.wallet,
+      testFixture.getTxBuilderOpts(),
+    )
+      .addInstruction({
+        instructions: [...prepareComputeUnitIx(100_000, 20_000_000), decreaseLiquidityIx],
+        cleanupInstructions: [],
+        signers: [userWallet],
+      })
+      .addSigner(userWallet);
+
+    const sig2 = await transaction2.buildAndExecute();
+
+    await connection.confirmTransaction(sig2);
 
     // const parsedTx = await connection.getParsedTransaction(sig, 'confirmed');
     // console.log(parsedTx);

@@ -505,6 +505,38 @@ export class TestFixture {
     await execute({ sendAndConfirm: true });
   }
 
+  public async decreaseRaydiumPoolLiquidity(
+    userPosition: PublicKey,
+    liquidity: BN,
+    wallet?: Keypair,
+  ) {
+    const raydium = await this.getRaydiumSdk(wallet);
+    const poolId = this.raydiumPoolInfo.clmmPool;
+    const { poolInfo, poolKeys } = await raydium.clmm.getPoolInfoFromRpc(poolId.toBase58());
+
+    const getPosition = async (p: PublicKey) => {
+      const account = await this.getConnection().getAccountInfo(p);
+      const position = PositionInfoLayout.decode(account.data);
+      return position;
+    };
+    const position = await getPosition(userPosition);
+    const { execute } = await raydium.clmm.decreaseLiquidity({
+      poolInfo,
+      poolKeys,
+      ownerPosition: position,
+      ownerInfo: {
+        useSOLBalance: true,
+      },
+      liquidity: liquidity,
+      amountMinA: new BN(1_000_000),
+      amountMinB: new BN(1_000_000),
+      checkCreateATAOwner: true,
+      txVersion: TxVersion.V0,
+    });
+    // don't want to wait confirm, set sendAndConfirm to false or don't pass any params to execute
+    await execute({ sendAndConfirm: true });
+  }
+
   public async initMeteoraDlmmPool(binStep: BN, baseFactor: BN): Promise<PublicKey> {
     const DEFAULT_ACTIVE_ID = new BN(5660);
     const [presetParamPda] = derivePresetParameter2(binStep, baseFactor, METEORA_CLMM_PROGRAM_ID);

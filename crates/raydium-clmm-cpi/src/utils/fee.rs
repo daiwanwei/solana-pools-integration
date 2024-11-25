@@ -1,6 +1,6 @@
 use crate::{
     libraries::{fixed_point_64, full_math::MulDiv, U128},
-    states::TickState,
+    state::TickState,
 };
 
 // Ref: https://github.com/raydium-io/raydium-clmm/blob/master/programs/amm/src/instructions/increase_liquidity.rs

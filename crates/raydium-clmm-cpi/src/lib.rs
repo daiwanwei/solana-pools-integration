@@ -1,6 +1,7 @@
+pub mod constants;
 pub mod contexts;
 pub mod libraries;
-pub mod states;
+pub mod state;
 pub mod utils;
 
 use anchor_lang::prelude::*;

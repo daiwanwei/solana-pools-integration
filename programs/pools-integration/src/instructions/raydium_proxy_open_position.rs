@@ -5,11 +5,7 @@ use anchor_spl::{
     token::Token,
     token_interface::{Mint, Token2022, TokenAccount},
 };
-use raydium_clmm_cpi::{
-    cpi,
-    program::AmmV3,
-    states::{PoolState, POSITION_SEED, TICK_ARRAY_SEED},
-};
+use raydium_clmm_cpi::{cpi, program::AmmV3, state::PoolState};
 #[derive(Accounts)]
 #[instruction(tick_lower_index: i32, tick_upper_index: i32,tick_array_lower_start_index:i32,tick_array_upper_start_index:i32)]
 pub struct RaydiumProxyOpenPosition<'info> {

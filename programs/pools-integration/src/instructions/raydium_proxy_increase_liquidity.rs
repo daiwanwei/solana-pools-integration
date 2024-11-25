@@ -4,9 +4,7 @@ use anchor_spl::token_interface::{Mint, Token2022, TokenAccount};
 use raydium_clmm_cpi::{
     cpi,
     program::AmmV3,
-    states::{
-        PersonalPositionState, PoolState, ProtocolPositionState, TickArrayState, POSITION_SEED,
-    },
+    state::{PersonalPositionState, PoolState, ProtocolPositionState, TickArrayState},
 };
 
 #[derive(Accounts)]

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use raydium_clmm_cpi::{
-    states::{PersonalPositionState, PoolState, TickArrayState},
+    state::{PersonalPositionState, PoolState, TickArrayState},
     utils::fee::{calculate_latest_token_fees, get_fee_growth_inside},
 };
 

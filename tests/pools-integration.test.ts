@@ -242,6 +242,27 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const harvestIx = await program.methods
+      .raydiumHarvest()
+      .accounts({
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftOwner: owner,
+        nftAccount: positionTokenAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -270,7 +291,11 @@ describe("pools-integration", () => {
       testFixture.getTxBuilderOpts(),
     )
       .addInstruction({
-        instructions: [...prepareComputeUnitIx(100_000, 20_000_000), decreaseLiquidityIx],
+        instructions: [
+          ...prepareComputeUnitIx(100_000, 20_000_000),
+          decreaseLiquidityIx,
+          harvestIx,
+        ],
         cleanupInstructions: [],
         signers: [userWallet],
       })

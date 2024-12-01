@@ -154,4 +154,10 @@ pub mod pools_integration {
     ) -> Result<()> {
         meteora_proxy_claim_fee::handler(ctx)
     }
+
+    pub fn meteora_harvest<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraHarvest<'info>>,
+    ) -> Result<()> {
+        meteora_harvest::handler(ctx)
+    }
 }

@@ -148,4 +148,10 @@ pub mod pools_integration {
     pub fn meteora_log_position_fee(ctx: Context<MeteoraLogPositionFee>) -> Result<()> {
         meteora_log_position_fee::handler(ctx)
     }
+
+    pub fn meteora_proxy_claim_fee<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyClaimFee<'info>>,
+    ) -> Result<()> {
+        meteora_proxy_claim_fee::handler(ctx)
+    }
 }

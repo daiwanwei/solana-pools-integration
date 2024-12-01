@@ -408,6 +408,26 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const claimFeeIx = await program.methods
+      .meteoraProxyClaimFee()
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        userTokenX: userTokenAAccount,
+        userTokenY: userTokenBAccount,
+        reserveX: poolInfo.tokenAVault,
+        reserveY: poolInfo.tokenBVault,
+        tokenXMint: poolInfo.tokenAMint,
+        tokenYMint: poolInfo.tokenBMint,
+        binArrayLower,
+        binArrayUpper,
+        sender: owner,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        eventAuthority,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -419,6 +439,7 @@ describe("pools-integration", () => {
           openPositionIx,
           increaseLiquidityIx,
           logPositionFeeIx,
+          claimFeeIx,
         ],
         cleanupInstructions: [],
         signers: [position, userWallet],

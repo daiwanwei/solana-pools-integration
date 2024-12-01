@@ -24,8 +24,10 @@ pub use raydium_proxy_open_position::*;
 
 pub mod meteora_log_position_fee;
 pub mod meteora_proxy_add_liquidity;
+pub mod meteora_proxy_claim_fee;
 pub mod meteora_proxy_initialize_position;
 
 pub use meteora_log_position_fee::*;
 pub use meteora_proxy_add_liquidity::*;
+pub use meteora_proxy_claim_fee::*;
 pub use meteora_proxy_initialize_position::*;

@@ -143,3 +143,37 @@ pub struct ModifyLiquidity<'info> {
     pub event_authority: Account<'info, AccountPlaceholder>,
     pub program: Account<'info, AccountPlaceholder>,
 }
+
+#[derive(Accounts)]
+pub struct ClaimFee<'info> {
+    #[account(mut)]
+    pub lb_pair: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub position: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub bin_array_lower: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub bin_array_upper: Account<'info, AccountPlaceholder>,
+
+    pub sender: Signer<'info>,
+
+    #[account(mut)]
+    pub reserve_x: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub reserve_y: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub user_token_x: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub user_token_y: Account<'info, AccountPlaceholder>,
+
+    pub token_x_mint: Account<'info, AccountPlaceholder>,
+    pub token_y_mint: Account<'info, AccountPlaceholder>,
+
+    pub token_program: Account<'info, AccountPlaceholder>,
+
+    pub event_authority: Account<'info, AccountPlaceholder>,
+    pub program: Account<'info, AccountPlaceholder>,
+}

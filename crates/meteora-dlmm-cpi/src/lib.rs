@@ -29,4 +29,8 @@ pub mod lb_clmm {
     ) -> Result<()> {
         Ok(())
     }
+
+    pub fn claim_fee<'a, 'b, 'c: 'info, 'info>(ctx: Context<ClaimFee<'info>>) -> Result<()> {
+        Ok(())
+    }
 }

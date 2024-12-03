@@ -474,6 +474,20 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const closePositionIx = await program.methods
+      .meteoraProxyClosePosition()
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        binArrayLower,
+        binArrayUpper,
+        sender: owner,
+        rentReceiver: owner,
+        eventAuthority,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -488,6 +502,7 @@ describe("pools-integration", () => {
           claimFeeIx,
           harvestIx,
           removeLiquidityIx,
+          closePositionIx,
         ],
         cleanupInstructions: [],
         signers: [position, userWallet],

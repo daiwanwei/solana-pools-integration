@@ -162,6 +162,12 @@ pub mod pools_integration {
         meteora_proxy_claim_fee::handler(ctx)
     }
 
+    pub fn meteora_proxy_close_position<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyClosePosition<'info>>,
+    ) -> Result<()> {
+        meteora_proxy_close_position::handler(ctx)
+    }
+
     pub fn meteora_harvest<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, MeteoraHarvest<'info>>,
     ) -> Result<()> {

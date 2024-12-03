@@ -40,4 +40,10 @@ pub mod lb_clmm {
     pub fn claim_fee<'a, 'b, 'c: 'info, 'info>(ctx: Context<ClaimFee<'info>>) -> Result<()> {
         Ok(())
     }
+
+    pub fn close_position<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<ClosePosition<'info>>,
+    ) -> Result<()> {
+        Ok(())
+    }
 }

@@ -184,3 +184,26 @@ pub struct ClaimFee<'info> {
     pub event_authority: Account<'info, AccountPlaceholder>,
     pub program: Account<'info, AccountPlaceholder>,
 }
+
+#[derive(Accounts)]
+pub struct ClosePosition<'info> {
+    #[account(mut)]
+    pub position: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub lb_pair: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub bin_array_lower: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub bin_array_upper: Account<'info, AccountPlaceholder>,
+
+    pub sender: Signer<'info>,
+
+    /// CHECK: Account to receive closed account rental SOL
+    #[account(mut)]
+    pub rent_receiver: Account<'info, AccountPlaceholder>,
+
+    pub event_authority: Account<'info, AccountPlaceholder>,
+    pub program: Account<'info, AccountPlaceholder>,
+}

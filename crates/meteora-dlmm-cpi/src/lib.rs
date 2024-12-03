@@ -30,6 +30,13 @@ pub mod lb_clmm {
         Ok(())
     }
 
+    pub fn remove_liquidity_by_range<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ModifyLiquidity<'info>>,
+        bin_liquidity_removal: BinLiquidityByRange,
+    ) -> Result<()> {
+        Ok(())
+    }
+
     pub fn claim_fee<'a, 'b, 'c: 'info, 'info>(ctx: Context<ClaimFee<'info>>) -> Result<()> {
         Ok(())
     }

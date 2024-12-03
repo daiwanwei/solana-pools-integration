@@ -107,6 +107,13 @@ impl Default for StrategyParameters {
     }
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
+pub struct BinLiquidityByRange {
+    pub from_bin_id: i32,
+    pub to_bin_id: i32,
+    pub bps_to_remove: u16,
+}
+
 #[derive(Accounts)]
 pub struct ModifyLiquidity<'info> {
     #[account(mut)]

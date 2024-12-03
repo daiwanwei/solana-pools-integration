@@ -12,7 +12,7 @@ describe("meteora", () => {
     await testFixture.init();
   });
 
-  it("open position and increase liquidity", async () => {
+  it("increase and decrease liquidity", async () => {
     const user = testFixture.getUserInfo();
 
     const pool = await testFixture.getMeteoraPoolInfo();
@@ -28,5 +28,12 @@ describe("meteora", () => {
       user.wallet.publicKey,
     );
     console.log(`feeX: ${feeX.toString()}, feeY: ${feeY.toString()}`);
+
+    await testFixture.removeMeteoraLiquidity(
+      pool.dlmmPool,
+      position,
+      new BN(100 * 100),
+      user.wallet,
+    );
   });
 });

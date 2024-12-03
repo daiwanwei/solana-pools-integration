@@ -448,6 +448,32 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const removeLiquidityIx = await program.methods
+      .meteoraProxyRemoveLiquidity({
+        fromBinId: minBinId,
+        toBinId: maxBinId,
+        bpsToRemove: new BN(100 * 100),
+      })
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        position: position.publicKey,
+        lbPair: dlmmPool,
+        userTokenX: userTokenAAccount,
+        userTokenY: userTokenBAccount,
+        reserveX: poolInfo.tokenAVault,
+        reserveY: poolInfo.tokenBVault,
+        tokenXMint: poolInfo.tokenAMint,
+        tokenYMint: poolInfo.tokenBMint,
+        binArrayLower,
+        binArrayUpper,
+        binArrayBitmapExtension: null,
+        sender: owner,
+        tokenXProgram: TOKEN_PROGRAM_ID,
+        tokenYProgram: TOKEN_PROGRAM_ID,
+        eventAuthority,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -461,6 +487,7 @@ describe("pools-integration", () => {
           logPositionFeeIx,
           claimFeeIx,
           harvestIx,
+          removeLiquidityIx,
         ],
         cleanupInstructions: [],
         signers: [position, userWallet],
@@ -468,11 +495,6 @@ describe("pools-integration", () => {
       .addSigner(position)
       .addSigner(userWallet);
 
-    const sig = await transaction.buildAndExecute();
-
-    await connection.confirmTransaction(sig);
-
-    // const parsedTx = await connection.getParsedTransaction(sig, "confirmed");
-    // console.log(parsedTx);
+    await testFixture.sendAndConfirmTx(transaction);
   });
 });

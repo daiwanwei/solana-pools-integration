@@ -5,7 +5,7 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
-use meteora_dlmm_cpi::LiquidityParameterByStrategy;
+use meteora_dlmm_cpi::{BinLiquidityByRange, LiquidityParameterByStrategy};
 
 pub use constants::*;
 pub use instructions::*;
@@ -143,6 +143,13 @@ pub mod pools_integration {
         liquidity_params: LiquidityParameterByStrategy,
     ) -> Result<()> {
         meteora_proxy_add_liquidity::handler(ctx, liquidity_params)
+    }
+
+    pub fn meteora_proxy_remove_liquidity<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyModifyLiquidity<'info>>,
+        bin_liquidity_removal: BinLiquidityByRange,
+    ) -> Result<()> {
+        meteora_proxy_remove_liquidity::handler(ctx, bin_liquidity_removal)
     }
 
     pub fn meteora_log_position_fee(ctx: Context<MeteoraLogPositionFee>) -> Result<()> {

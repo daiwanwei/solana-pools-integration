@@ -66,6 +66,8 @@ import DLMM, {
   BinLiquidity,
 } from "@meteora-ag/dlmm";
 
+import { logTransaction, sendAndConfirmTx, sendAndConfirmTx2 } from "../utils/transaction";
+
 export class TestFixture {
   private provider: AnchorProvider;
 
@@ -632,6 +634,36 @@ export class TestFixture {
     return position.publicKey;
   }
 
+  async removeMeteoraLiquidity(
+    lpPair: PublicKey,
+    position: PublicKey,
+    bps: BN,
+    wallet?: Keypair,
+  ): Promise<void> {
+    const connection = this.getConnection();
+    const dlmmPool = await DLMM.create(connection, lpPair);
+
+    let user = wallet?.publicKey || this.provider.wallet.publicKey;
+    const { userPositions } = await dlmmPool.getPositionsByUserAndLbPair(user);
+
+    const userPosition = userPositions.find((p) => {
+      return p.publicKey.equals(position);
+    });
+
+    const binIdsToRemove = userPosition.positionData.positionBinData.map((bin) => bin.binId);
+    const removeLiquidityTx = await dlmmPool.removeLiquidity({
+      position: userPosition.publicKey,
+      user: user,
+      binIds: binIdsToRemove,
+      bps, // 100% (range from 0 to 100)
+      shouldClaimAndClose: true, // should claim swap fee and close position together
+    });
+
+    for (let tx of Array.isArray(removeLiquidityTx) ? removeLiquidityTx : [removeLiquidityTx]) {
+      const txHash = await this.sendAndConfirmTx2(tx, [], wallet);
+    }
+  }
+
   public getUserInfo(): UserInfo {
     return this.userInfo;
   }
@@ -688,8 +720,9 @@ export class TestFixture {
   }
 
   public async sendAndConfirmTx(transaction: TransactionBuilder): Promise<void> {
-    let sig = await transaction.buildAndExecute();
-    await this.getConnection().confirmTransaction(sig);
+    const sig = await sendAndConfirmTx(this.getConnection(), transaction);
+    await sleep(1000);
+    await logTransaction(this.getConnection(), sig);
   }
 
   public async sendAndConfirmTx2(
@@ -697,14 +730,10 @@ export class TestFixture {
     signers: Keypair[] = [],
     payer?: Keypair,
   ): Promise<TransactionSignature> {
-    if (payer) {
-      const connection = this.getConnection();
-      rawTx.feePayer = payer.publicKey;
-      rawTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      return await sendAndConfirmTransaction(connection, rawTx, [payer, ...signers]);
-    } else {
-      return await this.provider.sendAndConfirm(rawTx, signers);
-    }
+    const sig = await sendAndConfirmTx2(this.provider, rawTx, signers, payer);
+    await sleep(1000);
+    await logTransaction(this.getConnection(), sig);
+    return sig;
   }
 
   async rentAta() {

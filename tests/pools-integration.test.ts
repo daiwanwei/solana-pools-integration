@@ -221,27 +221,6 @@ describe("pools-integration", () => {
       })
       .instruction();
 
-    const decreaseLiquidityIx = await program.methods
-      .raydiumProxyDecreaseLiquidity(new BN(10), new BN(0), new BN(0))
-      .accounts({
-        clmmProgram: CLMM_PROGRAM_ID,
-        nftOwner: owner,
-        nftAccount: positionTokenAccount,
-        poolState: poolInfo.clmmPool,
-        protocolPosition: protocolPositionPda.publicKey,
-        personalPosition: position.publicKey,
-        tickArrayLower: tickArrayLower.publicKey,
-        tickArrayUpper: tickArrayUpper.publicKey,
-        recipientTokenAccount0: userTokenAAccount,
-        recipientTokenAccount1: userTokenBAccount,
-        tokenVault0: poolInfo.tokenAVault,
-        tokenVault1: poolInfo.tokenBVault,
-        vault0Mint: poolInfo.tokenAMint,
-        vault1Mint: poolInfo.tokenBMint,
-        memoProgram: MEMO_PROGRAM_ID,
-      })
-      .instruction();
-
     const harvestIx = await program.methods
       .raydiumHarvest()
       .accounts({
@@ -263,6 +242,38 @@ describe("pools-integration", () => {
       })
       .instruction();
 
+    const decreaseLiquidityIx = await program.methods
+      .raydiumProxyDecreaseLiquidity(new BN(20), new BN(0), new BN(0))
+      .accounts({
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftOwner: owner,
+        nftAccount: positionTokenAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
+    const closePositionIx = await program.methods
+      .raydiumProxyClosePosition()
+      .accounts({
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftOwner: owner,
+        positionNftMint: positionMint.publicKey,
+        positionNftAccount: positionTokenAccount,
+        personalPosition: position.publicKey,
+      })
+      .instruction();
+
     const transaction = new TransactionBuilder(
       connection,
       provider.wallet,
@@ -281,9 +292,7 @@ describe("pools-integration", () => {
       .addSigner(positionMint)
       .addSigner(userWallet);
 
-    const sig = await transaction.buildAndExecute();
-
-    await connection.confirmTransaction(sig);
+    await testFixture.sendAndConfirmTx(transaction);
 
     const transaction2 = new TransactionBuilder(
       connection,
@@ -293,20 +302,16 @@ describe("pools-integration", () => {
       .addInstruction({
         instructions: [
           ...prepareComputeUnitIx(100_000, 20_000_000),
-          decreaseLiquidityIx,
           harvestIx,
+          decreaseLiquidityIx,
+          closePositionIx,
         ],
         cleanupInstructions: [],
         signers: [userWallet],
       })
       .addSigner(userWallet);
 
-    const sig2 = await transaction2.buildAndExecute();
-
-    await connection.confirmTransaction(sig2);
-
-    // const parsedTx = await connection.getParsedTransaction(sig, 'confirmed');
-    // console.log(parsedTx);
+    await testFixture.sendAndConfirmTx(transaction2);
   });
 
   it("meteora-proxy: open position and increase liquidity", async () => {

@@ -12,12 +12,14 @@ pub use orca_proxy_swap::*;
 
 pub mod raydium_harvest;
 pub mod raydium_log_position_fee;
+pub mod raydium_proxy_close_position;
 pub mod raydium_proxy_decrease_liquidity;
 pub mod raydium_proxy_increase_liquidity;
 pub mod raydium_proxy_open_position;
 
 pub use raydium_harvest::*;
 pub use raydium_log_position_fee::*;
+pub use raydium_proxy_close_position::*;
 pub use raydium_proxy_decrease_liquidity::*;
 pub use raydium_proxy_increase_liquidity::*;
 pub use raydium_proxy_open_position::*;

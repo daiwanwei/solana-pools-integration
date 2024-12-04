@@ -314,3 +314,34 @@ pub struct DecreaseLiquidityV2<'info> {
     /// The mint of token vault 1
     pub vault_1_mint: Account<'info, AccountPlaceholder>,
 }
+
+#[derive(Accounts)]
+pub struct ClosePosition<'info> {
+    /// The position nft owner
+    #[account(mut)]
+    pub nft_owner: Signer<'info>,
+
+    /// Unique token mint address
+    #[account(mut)]
+    pub position_nft_mint: Account<'info, AccountPlaceholder>,
+
+    /// Token account where position NFT will be minted
+    #[account(mut)]
+    pub position_nft_account: Account<'info, AccountPlaceholder>,
+
+    /// To store metaplex metadata
+    /// CHECK: Safety check performed inside function body
+    // #[account(mut)]
+    // pub metadata_account: UncheckedAccount<'info>,
+
+    /// Metadata for the tokenized position
+    #[account(mut)]
+    pub personal_position: Account<'info, AccountPlaceholder>,
+
+    /// Program to create the position manager state account
+    pub system_program: Account<'info, AccountPlaceholder>,
+    /// Program to create mint account and mint tokens
+    pub token_program: Account<'info, AccountPlaceholder>,
+    // /// Reserved for upgrade
+    // pub token_program_2022: Program<'info, Token2022>,
+}

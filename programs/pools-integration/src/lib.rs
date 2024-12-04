@@ -118,6 +118,12 @@ pub mod pools_integration {
         raydium_proxy_decrease_liquidity::handler(ctx, liquidity, amount_0_min, amount_1_min)
     }
 
+    pub fn raydium_proxy_close_position<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, RaydiumProxyClosePosition<'info>>,
+    ) -> Result<()> {
+        raydium_proxy_close_position::handler(ctx)
+    }
+
     pub fn raydium_harvest<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, RaydiumHarvest<'info>>,
     ) -> Result<()> {

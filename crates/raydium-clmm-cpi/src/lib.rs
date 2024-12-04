@@ -124,4 +124,16 @@ pub mod amm_v3 {
     ) -> Result<()> {
         Ok(())
     }
+
+    /// Close the user's position and NFT account. If the NFT mint belongs to token2022, it will also be closed and the funds returned to the NFT owner.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context of accounts
+    ///
+    pub fn close_position<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ClosePosition<'info>>,
+    ) -> Result<()> {
+        Ok(())
+    }
 }

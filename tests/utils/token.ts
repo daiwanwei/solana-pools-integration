@@ -1,101 +1,90 @@
-import type { AnchorProvider } from "@coral-xyz/anchor";
+import type { AnchorProvider, Provider } from "@coral-xyz/anchor";
 import { BN, web3 } from "@coral-xyz/anchor";
-import { TokenUtil, TransactionBuilder } from "@orca-so/common-sdk";
-import type { AuthorityType } from "@solana/spl-token";
+import { Connection, Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { TokenUtil } from "@orca-so/common-sdk";
 import {
   AccountLayout,
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
-  createApproveInstruction,
   createAssociatedTokenAccountInstruction,
-  createBurnInstruction,
   createInitializeAccount3Instruction,
   createInitializeMintInstruction,
   createMintToInstruction,
-  createSetAuthorityInstruction,
-  createTransferInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
 const TEST_TOKEN_PROGRAM_ID = TOKEN_PROGRAM_ID;
 
-export async function createMint(
-  provider: AnchorProvider,
-  authority?: web3.PublicKey,
-): Promise<web3.PublicKey> {
-  if (authority === undefined) {
-    authority = provider.wallet.publicKey;
-  }
+export async function prepareCreateMintInstructions(
+  connection: Connection,
+  payer: PublicKey,
+  authority: PublicKey,
+  decimals: number
+): Promise<{
+  mint: PublicKey;
+  instructions: TransactionInstruction[];
+}> {
   const mint = web3.Keypair.generate();
-  const instructions = await createMintInstructions(provider, authority, mint.publicKey);
-
-  const tx = new web3.Transaction();
-  tx.add(...instructions);
-
-  await provider.sendAndConfirm(tx, [mint], { commitment: "confirmed" });
-
-  return mint.publicKey;
+  const instructions = await createMintInstructions(
+    connection,
+    payer,
+    authority,
+    mint.publicKey,
+    decimals
+  );
+  return {
+    mint: mint.publicKey,
+    instructions,
+  };
 }
 
 export async function createMintInstructions(
-  provider: AnchorProvider,
+  connection: Connection,
+  payer: web3.PublicKey,
   authority: web3.PublicKey,
   mint: web3.PublicKey,
+  decimals: number
 ) {
   let instructions = [
     web3.SystemProgram.createAccount({
-      fromPubkey: provider.wallet.publicKey,
+      fromPubkey: payer,
       newAccountPubkey: mint,
       space: 82,
-      lamports: await provider.connection.getMinimumBalanceForRentExemption(82),
+      lamports: await connection.getMinimumBalanceForRentExemption(82),
       programId: TEST_TOKEN_PROGRAM_ID,
     }),
-    createInitializeMintInstruction(mint, 0, authority, null),
+    createInitializeMintInstruction(mint, decimals, authority, null),
   ];
   return instructions;
 }
 
-export async function createTokenAccount(
-  provider: AnchorProvider,
+export function prepareCreateATAInstruction(
   mint: web3.PublicKey,
   owner: web3.PublicKey,
-) {
-  const tokenAccount = web3.Keypair.generate();
-  const tx = new web3.Transaction();
-  tx.add(...(await createTokenAccountInstrs(provider, tokenAccount.publicKey, mint, owner)));
-  await provider.sendAndConfirm(tx, [tokenAccount], {
-    commitment: "confirmed",
-  });
-  return tokenAccount.publicKey;
-}
-
-export async function createAssociatedTokenAccount(
-  provider: AnchorProvider,
-  mint: web3.PublicKey,
-  owner: web3.PublicKey,
-  payer: web3.PublicKey,
-) {
+  payer: web3.PublicKey
+): { ataAddress: web3.PublicKey; instruction: TransactionInstruction } {
   const ataAddress = getAssociatedTokenAddressSync(mint, owner);
   const instr = createAssociatedTokenAccountInstruction(payer, ataAddress, owner, mint);
-  const tx = new web3.Transaction();
-  tx.add(instr);
-  await provider.sendAndConfirm(tx, [], { commitment: "confirmed" });
-  return ataAddress;
+  return {
+    ataAddress,
+    instruction: instr,
+  };
 }
 
-async function createTokenAccountInstrs(
-  provider: AnchorProvider,
-  newAccountPubkey: web3.PublicKey,
-  mint: web3.PublicKey,
-  owner: web3.PublicKey,
-  lamports?: number,
-) {
+async function prepareCreateTokenAccountInstruction(
+  provider: Provider,
+  payer: PublicKey,
+  newAccountPubkey: PublicKey,
+  mint: PublicKey,
+  owner: PublicKey,
+  lamports?: number
+): Promise<TransactionInstruction[]> {
   if (lamports === undefined) {
     lamports = await provider.connection.getMinimumBalanceForRentExemption(165);
   }
   return [
     web3.SystemProgram.createAccount({
-      fromPubkey: provider.wallet.publicKey,
+      fromPubkey: payer,
       newAccountPubkey,
       space: 165,
       lamports,
@@ -105,190 +94,75 @@ async function createTokenAccountInstrs(
   ];
 }
 
-/**
- * Mints tokens to the specified destination token account.
- * @param provider An anchor AnchorProvider object used to send transactions
- * @param mint Mint address of the token
- * @param destination Destination token account to receive tokens
- * @param amount Number of tokens to mint
- */
-export async function mintToDestination(
-  provider: AnchorProvider,
-  mint: web3.PublicKey,
-  destination: web3.PublicKey,
-  amount: number | BN,
-): Promise<string> {
-  const tx = new web3.Transaction();
+export async function prepareMintToInstruction(
+  payer: PublicKey,
+  mint: PublicKey,
+  destination: PublicKey,
+  amount: number | BN
+): Promise<TransactionInstruction> {
   const amountVal = amount instanceof BN ? BigInt(amount.toString()) : amount;
-  tx.add(createMintToInstruction(mint, destination, provider.wallet.publicKey, amountVal));
-  return provider.sendAndConfirm(tx, [], { commitment: "confirmed" });
+  return createMintToInstruction(mint, destination, payer, amountVal);
 }
 
-/**
- * Creates a token account for the mint and mints the specified amount of tokens into the token account.
- * The caller is assumed to be the mint authority.
- * @param provider An anchor AnchorProvider object used to send transactions
- * @param mint The mint address of the token
- * @param amount Number of tokens to mint to the newly created token account
- */
-export async function createAndMintToTokenAccount(
-  provider: AnchorProvider,
-  mint: web3.PublicKey,
+export async function prepareCreateAndMintToATAInstruction(
+  connection: Connection,
+  payer: PublicKey,
+  mint: PublicKey,
   amount: number | BN,
-): Promise<web3.PublicKey> {
-  const tokenAccount = await createTokenAccount(provider, mint, provider.wallet.publicKey);
-  await mintToDestination(provider, mint, tokenAccount, new BN(amount.toString()));
-  return tokenAccount;
-}
-
-export async function createAndMintToAssociatedTokenAccount(
-  provider: AnchorProvider,
-  mint: web3.PublicKey,
-  amount: number | BN,
-  destinationWallet?: web3.PublicKey,
-  payer?: web3.PublicKey,
-): Promise<web3.PublicKey> {
-  const destinationWalletKey = destinationWallet ? destinationWallet : provider.wallet.publicKey;
-  const payerKey = payer ? payer : provider.wallet.publicKey;
+  destinationWallet?: PublicKey
+): Promise<{ tokenAccount: PublicKey; instructions: TransactionInstruction[] }> {
+  const destinationWalletKey = destinationWallet ? destinationWallet : payer;
 
   // Workaround For SOL - just create a wSOL account to satisfy the rest of the test building pipeline.
   // Tests who want to test with SOL will have to request their own airdrop.
   if (mint.equals(NATIVE_MINT)) {
-    const rentExemption = await provider.connection.getMinimumBalanceForRentExemption(
+    const rentExemption = await connection.getMinimumBalanceForRentExemption(
       AccountLayout.span,
-      "confirmed",
+      "confirmed"
     );
-    const txBuilder = new TransactionBuilder(provider.connection, provider.wallet);
     const { address: tokenAccount, ...ix } = TokenUtil.createWrappedNativeAccountInstruction(
       destinationWalletKey,
       new BN(amount.toString()),
-      rentExemption,
+      rentExemption
     );
-    txBuilder.addInstruction({ ...ix, cleanupInstructions: [] });
-    await txBuilder.buildAndExecute();
-    return tokenAccount;
+    return {
+      tokenAccount,
+      instructions: [...ix.instructions],
+    };
   }
-
-  const tokenAccounts = await provider.connection.getParsedTokenAccountsByOwner(
-    destinationWalletKey,
-    {
-      programId: TOKEN_PROGRAM_ID,
-    },
-  );
-
-  let tokenAccount = tokenAccounts.value
-    .map((account) => {
-      if (account.account.data.parsed.info.mint === mint.toString()) {
-        return account.pubkey;
-      }
-      return undefined;
-    })
-    .filter(Boolean)[0];
-
-  if (!tokenAccount) {
-    tokenAccount = await createAssociatedTokenAccount(
-      provider,
+  console.log(connection);
+  const ata = getAssociatedTokenAddressSync(mint, destinationWalletKey);
+  try {
+    const tokenAccount = await connection.getAccountInfo(ata);
+  } catch (e) {
+    console.log("ATA does not exist");
+    const { ataAddress, instruction } = prepareCreateATAInstruction(
       mint,
       destinationWalletKey,
-      payerKey,
+      payer
     );
+
+    const mintTo = await prepareMintToInstruction(payer, mint, ataAddress, amount);
+    return {
+      tokenAccount: ataAddress,
+      instructions: [instruction, mintTo],
+    };
   }
 
-  await mintToDestination(provider, mint, tokenAccount!, new BN(amount.toString()));
-  return tokenAccount!;
+  return {
+    tokenAccount: ata,
+    instructions: [await prepareMintToInstruction(payer, mint, ata, amount)],
+  };
 }
 
 export async function getTokenBalance(provider: AnchorProvider, vault: web3.PublicKey) {
   return (await provider.connection.getTokenAccountBalance(vault, "confirmed")).value.amount;
 }
 
-export async function approveToken(
-  provider: AnchorProvider,
-  tokenAccount: web3.PublicKey,
-  delegate: web3.PublicKey,
-  amount: number | BN,
-  owner?: web3.Keypair,
-  tokenProgram: web3.PublicKey = TOKEN_PROGRAM_ID,
-) {
-  const tx = new web3.Transaction();
-  const amountVal = amount instanceof BN ? BigInt(amount.toString()) : amount;
-  tx.add(
-    createApproveInstruction(
-      tokenAccount,
-      delegate,
-      owner?.publicKey || provider.wallet.publicKey,
-      amountVal,
-      undefined,
-      tokenProgram,
-    ),
-  );
-  return provider.sendAndConfirm(tx, !!owner ? [owner] : [], {
-    commitment: "confirmed",
-  });
-}
-
-export async function setAuthority(
-  provider: AnchorProvider,
-  tokenAccount: web3.PublicKey,
-  newAuthority: web3.PublicKey,
-  authorityType: AuthorityType,
-  authority: web3.Keypair,
-  tokenProgram: web3.PublicKey = TOKEN_PROGRAM_ID,
-) {
-  const tx = new web3.Transaction();
-  tx.add(
-    createSetAuthorityInstruction(
-      tokenAccount,
-      authority.publicKey,
-      authorityType,
-      newAuthority,
-      undefined,
-      tokenProgram,
-    ),
-  );
-
-  return provider.sendAndConfirm(tx, [authority], { commitment: "confirmed" });
-}
-
-export async function transferToken(
-  provider: AnchorProvider,
-  source: web3.PublicKey,
-  destination: web3.PublicKey,
-  amount: number,
-  tokenProgram: web3.PublicKey = TOKEN_PROGRAM_ID,
-) {
-  const tx = new web3.Transaction();
-  tx.add(
-    createTransferInstruction(
-      source,
-      destination,
-      provider.wallet.publicKey,
-      amount,
-      undefined,
-      tokenProgram,
-    ),
-  );
-  return provider.sendAndConfirm(tx, [], { commitment: "confirmed" });
-}
-
-export async function burnToken(
-  provider: AnchorProvider,
-  account: web3.PublicKey,
-  mint: web3.PublicKey,
-  amount: number | BN,
-  owner?: web3.PublicKey,
-) {
-  const ownerKey = owner ?? provider.wallet.publicKey;
-  const tx = new web3.Transaction();
-  const amountVal = amount instanceof BN ? BigInt(amount.toString()) : amount;
-  tx.add(createBurnInstruction(account, mint, ownerKey, amountVal));
-  return provider.sendAndConfirm(tx, [], { commitment: "confirmed" });
-}
-
 export async function getTokenBalances(
   connection: web3.Connection,
   token: web3.PublicKey,
-  account: web3.PublicKey,
+  account: web3.PublicKey
 ) {
   const account_info = await connection.getAccountInfo(account);
   if (account_info === null) {

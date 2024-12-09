@@ -1,17 +1,24 @@
-import * as anchor from "@coral-xyz/anchor";
-import Decimal from "decimal.js";
+import { TestFixture } from "./fixtures";
 import BN from "bn.js";
-import { TestFixture } from "./fixture";
+import { startWithPrograms } from "./utils/bankrun";
+import { BankrunProvider } from "anchor-bankrun";
+import { BanksClient, ProgramTestContext } from "solana-bankrun";
+import { Connection } from "@solana/web3.js";
+import Decimal from "decimal.js";
 
 describe("raydium", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
-  const provider = anchor.getProvider() as anchor.AnchorProvider;
-
-  const testFixture = new TestFixture(anchor.getProvider() as anchor.AnchorProvider);
+  let context: ProgramTestContext;
+  let client: BanksClient;
+  let provider: BankrunProvider;
+  let testFixture: TestFixture;
+  let connection: Connection;
 
   before(async () => {
+    context = await startWithPrograms(".");
+    client = context.banksClient;
+    provider = new BankrunProvider(context);
+    connection = provider.connection;
+    testFixture = new TestFixture(context);
     await testFixture.init();
   });
 
@@ -19,22 +26,18 @@ describe("raydium", () => {
     const user = testFixture.getUserInfo();
     const poolInfo = await testFixture.getRaydiumPoolInfo();
 
-    const position = await testFixture.createRaydiumPoolPosition(
+    const nftMint = await testFixture.createRaydiumPoolPosition(
       new Decimal(5),
       new Decimal(10),
       user.wallet,
     );
 
-    await sleep(1000);
+    await testFixture.increaseRaydiumPoolLiquidity(nftMint, new BN(1000), user.wallet);
 
-    await testFixture.increaseRaydiumPoolLiquidity(position, new BN(1000), user.wallet);
-
-    const { feeX, feeY } = await testFixture.getRaydiumPositionFee(poolInfo.clmmPool, position);
+    const { feeX, feeY } = await testFixture.getRaydiumPositionFee(poolInfo.clmmPool, nftMint);
 
     console.log(`feeX: ${feeX.toString()}, feeY: ${feeY.toString()}`);
 
-    await testFixture.decreaseRaydiumPoolLiquidity(position, new BN(1000), user.wallet);
+    await testFixture.decreaseRaydiumPoolLiquidity(nftMint, new BN(1000), user.wallet);
   });
 });
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

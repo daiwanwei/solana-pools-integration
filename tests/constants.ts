@@ -22,4 +22,5 @@ export const RAYDIUM_CLMM_CONFIG_4 = {
   defaultRangePoint: [0.001, 0.003, 0.005, 0.008, 0.01],
 };
 
-export const METEORA_CLMM_PROGRAM_ID = new PublicKey(LBCLMM_PROGRAM_IDS["mainnet-beta"]);
+export const METEORA_CLMM_PROGRAM_ID = new PublicKey("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
+export const METEORA_ADMIN_KEY = new PublicKey("5unTfT2kssBuNvHPY6LbJfJpLqEcdMxGYLWHwShaeTLi");

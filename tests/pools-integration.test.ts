@@ -1,13 +1,5 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { PoolsIntegration } from "../target/types/pools_integration";
-import { Keypair, PublicKey } from "@solana/web3.js";
 import { MEMO_PROGRAM_ID } from "@solana/spl-memo";
 import { ORCA_WHIRLPOOL_PROGRAM_ID, PDAUtil } from "@orca-so/whirlpools-sdk";
-import { TransactionBuilder } from "@orca-so/common-sdk";
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { TestFixture } from "./fixture";
-import BN from "bn.js";
 import {
   CLMM_PROGRAM_ID,
   getPdaProtocolPositionAddress,
@@ -17,27 +9,42 @@ import {
   getPdaMetadataKey,
 } from "@raydium-io/raydium-sdk-v2";
 import { prepareComputeUnitIx } from "./utils/instructions";
-import DLMM, {
+import {
   toStrategyParameters,
   StrategyType,
   binIdToBinArrayIndex,
   deriveBinArray,
 } from "@meteora-ag/dlmm";
-import { METEORA_CLMM_PROGRAM_ID } from "./constants";
+
+import { BankrunProvider } from "anchor-bankrun";
+import { BanksClient, ProgramTestContext } from "solana-bankrun";
+
+import { BN, Program } from "@coral-xyz/anchor";
+import { Keypair, PublicKey } from "@solana/web3.js";
+import { startWithPrograms } from "./utils/bankrun";
+
+import IDL from "../target/idl/pools_integration.json";
+import { PoolsIntegration } from "../target/types/pools_integration";
+import { TestFixture } from "./fixtures";
+import { METEORA_ADMIN_KEY, METEORA_CLMM_PROGRAM_ID } from "./constants";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 describe("pools-integration", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
-  const program = anchor.workspace.PoolsIntegration as Program<PoolsIntegration>;
-
-  const provider = anchor.getProvider() as anchor.AnchorProvider;
-  const connection = provider.connection;
-
-  const testFixture = new TestFixture(anchor.getProvider() as anchor.AnchorProvider);
+  let context: ProgramTestContext;
+  let client: BanksClient;
+  let provider: BankrunProvider;
+  let program: Program<PoolsIntegration>;
+  let testFixture: TestFixture;
 
   before(async () => {
+    context = await startWithPrograms(".");
+    client = context.banksClient;
+    provider = new BankrunProvider(context);
+
+    testFixture = new TestFixture(context);
     await testFixture.init();
+
+    program = new Program<PoolsIntegration>(IDL as PoolsIntegration, provider);
   });
 
   it("orca-proxy: open position and increase liquidity", async () => {
@@ -93,22 +100,10 @@ describe("pools-integration", () => {
       })
       .instruction();
 
-    const transaction = new TransactionBuilder(
-      connection,
-      provider.wallet,
-      testFixture.getTxBuilderOpts(),
-    )
-      .addInstruction({
-        instructions: [openPositionIx, increaseLiquidityIx],
-        cleanupInstructions: [],
-        signers: [positionMint, userWallet],
-      })
-      .addSigner(positionMint)
-      .addSigner(userWallet);
-
-    const sig = await transaction.buildAndExecute();
-
-    await connection.confirmTransaction(sig);
+    await testFixture.prepareAndProcessTransaction(
+      [openPositionIx, increaseLiquidityIx],
+      userWallet.publicKey,
+    );
   });
 
   it("raydium-proxy: open position and increase/decrease liquidity", async () => {
@@ -274,44 +269,23 @@ describe("pools-integration", () => {
       })
       .instruction();
 
-    const transaction = new TransactionBuilder(
-      connection,
-      provider.wallet,
-      testFixture.getTxBuilderOpts(),
-    )
-      .addInstruction({
-        instructions: [
-          ...prepareComputeUnitIx(100_000, 20_000_000),
-          openPositionIx,
-          increaseLiquidityIx,
-          logPositionFeeIx,
-        ],
-        cleanupInstructions: [],
-        signers: [positionMint, userWallet],
-      })
-      .addSigner(positionMint)
-      .addSigner(userWallet);
+    await testFixture.prepareAndProcessTransaction(
+      [
+        openPositionIx,
+        increaseLiquidityIx,
+        logPositionFeeIx,
+      ],
+      userWallet.publicKey,
+    );
 
-    await testFixture.sendAndConfirmTx(transaction);
-
-    const transaction2 = new TransactionBuilder(
-      connection,
-      provider.wallet,
-      testFixture.getTxBuilderOpts(),
-    )
-      .addInstruction({
-        instructions: [
-          ...prepareComputeUnitIx(100_000, 20_000_000),
-          harvestIx,
-          decreaseLiquidityIx,
-          closePositionIx,
-        ],
-        cleanupInstructions: [],
-        signers: [userWallet],
-      })
-      .addSigner(userWallet);
-
-    await testFixture.sendAndConfirmTx(transaction2);
+    await testFixture.prepareAndProcessTransaction(
+      [
+        harvestIx,
+        decreaseLiquidityIx,
+        closePositionIx,
+      ],
+      userWallet.publicKey,
+    );
   });
 
   it("meteora-proxy: open position and increase liquidity", async () => {
@@ -326,17 +300,56 @@ describe("pools-integration", () => {
 
     const owner = userWallet.publicKey;
 
-    const activeBin = await testFixture.getMeteoraActiveBin();
-    const TOTAL_RANGE_INTERVAL = 10; // 10 bins on each side of the active bin
-    const minBinId = activeBin.binId - TOTAL_RANGE_INTERVAL;
-    const maxBinId = activeBin.binId + TOTAL_RANGE_INTERVAL;
-
-    const position = Keypair.generate();
+    const rewardIndex = new BN(0);
+    const [rewardVault] = PublicKey.findProgramAddressSync(
+      [dlmmPool.toBytes(), new Uint8Array(rewardIndex.toArrayLike(Buffer, "le", 8))],
+      METEORA_CLMM_PROGRAM_ID,
+    );
+    const rewardMint = poolInfo.tokenAMint;
 
     const [eventAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from("__event_authority")],
       METEORA_CLMM_PROGRAM_ID,
     );
+
+    const activeBin = await testFixture.getMeteoraActiveBin();
+
+    const activeBinPricePerToken = await testFixture.getMeteoraActiveBinPrice(
+      Number(activeBin.price),
+    );
+
+    const TOTAL_RANGE_INTERVAL = 10; // 10 bins on each side of the active bin
+    const minBinId = activeBin.binId - TOTAL_RANGE_INTERVAL;
+    const maxBinId = activeBin.binId + TOTAL_RANGE_INTERVAL;
+
+    const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(minBinId));
+    const [binArrayLower] = deriveBinArray(dlmmPool, lowerBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
+
+    const upperBinArrayIndex = BN.max(
+      lowerBinArrayIndex.add(new BN(1)),
+      binIdToBinArrayIndex(new BN(maxBinId)),
+    );
+    const [binArrayUpper] = deriveBinArray(dlmmPool, upperBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
+
+    const initializeRewardIx = await program.methods
+      .meteoraProxyInitializeReward(rewardIndex, new BN(100000), owner)
+      .accounts({
+        dlmmProgram: METEORA_CLMM_PROGRAM_ID,
+        lbPair: dlmmPool,
+        rewardVault,
+        rewardMint,
+        admin: METEORA_ADMIN_KEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        eventAuthority,
+      })
+      .instruction();
+
+    await testFixture.prepareAndProcessTransaction(
+      [initializeRewardIx],
+      userWallet.publicKey,
+    );
+
+    const position = Keypair.generate();
 
     const openPositionIx = await program.methods
       .meteoraProxyInitializePosition(minBinId, maxBinId - minBinId + 1)
@@ -350,10 +363,6 @@ describe("pools-integration", () => {
       })
       .signers([position, userWallet])
       .instruction();
-
-    const activeBinPricePerToken = await testFixture.getMeteoraActiveBinPrice(
-      Number(activeBin.price),
-    );
 
     const totalXAmount = new BN(10);
     const totalYAmount = totalXAmount.mul(new BN(Number(activeBinPricePerToken)));
@@ -371,15 +380,6 @@ describe("pools-integration", () => {
       maxActiveBinSlippage: 0,
       strategyParameters,
     };
-
-    const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(minBinId));
-    const [binArrayLower] = deriveBinArray(dlmmPool, lowerBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
-
-    const upperBinArrayIndex = BN.max(
-      lowerBinArrayIndex.add(new BN(1)),
-      binIdToBinArrayIndex(new BN(maxBinId)),
-    );
-    const [binArrayUpper] = deriveBinArray(dlmmPool, upperBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
 
     const increaseLiquidityIx = await program.methods
       .meteoraProxyAddLiquidity(liquidityParams)
@@ -454,11 +454,7 @@ describe("pools-integration", () => {
       .instruction();
 
     const removeLiquidityIx = await program.methods
-      .meteoraProxyRemoveLiquidity({
-        fromBinId: minBinId,
-        toBinId: maxBinId,
-        bpsToRemove: new BN(100 * 100),
-      })
+      .meteoraProxyRemoveLiquidity(minBinId, maxBinId, 10000)
       .accounts({
         dlmmProgram: METEORA_CLMM_PROGRAM_ID,
         position: position.publicKey,
@@ -493,28 +489,17 @@ describe("pools-integration", () => {
       })
       .instruction();
 
-    const transaction = new TransactionBuilder(
-      connection,
-      provider.wallet,
-      testFixture.getTxBuilderOpts(),
-    )
-      .addInstruction({
-        instructions: [
-          ...prepareComputeUnitIx(100_000, 20_000_000),
-          openPositionIx,
-          increaseLiquidityIx,
-          logPositionFeeIx,
-          claimFeeIx,
-          harvestIx,
-          removeLiquidityIx,
-          closePositionIx,
-        ],
-        cleanupInstructions: [],
-        signers: [position, userWallet],
-      })
-      .addSigner(position)
-      .addSigner(userWallet);
-
-    await testFixture.sendAndConfirmTx(transaction);
+    await testFixture.prepareAndProcessTransaction(
+      [
+        openPositionIx,
+        increaseLiquidityIx,
+        logPositionFeeIx,
+        claimFeeIx,
+        harvestIx,
+        removeLiquidityIx,
+        closePositionIx,
+      ],
+      userWallet.publicKey,
+    );
   });
 });

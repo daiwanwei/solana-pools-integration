@@ -1,31 +1,41 @@
-import * as anchor from "@coral-xyz/anchor";
 import {
   ORCA_WHIRLPOOL_PROGRAM_ID,
   PDAUtil,
   SwapUtils,
   WhirlpoolContext,
   WhirlpoolIx,
+  WhirlpoolAccountFetcherInterface,
 } from "@orca-so/whirlpools-sdk";
-import { TransactionBuilder, Wallet, MathUtil } from "@orca-so/common-sdk";
-import { TestFixture } from "./fixture";
+import { TestFixture } from "./fixtures";
 import { getTokenBalances } from "./utils/token";
 import BN from "bn.js";
+import { startWithPrograms } from "./utils/bankrun";
+import { BankrunProvider } from "anchor-bankrun";
+import { BanksClient, ProgramTestContext } from "solana-bankrun";
+import { Connection } from "@solana/web3.js";
 
 describe("orca", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
-  const provider = anchor.getProvider() as anchor.AnchorProvider;
-  const connection = provider.connection;
-  const wallet = provider.wallet as Wallet;
-
-  const whirlpoolCtx = WhirlpoolContext.withProvider(provider, ORCA_WHIRLPOOL_PROGRAM_ID);
-  const fetcher = whirlpoolCtx.fetcher;
-
-  const testFixture = new TestFixture(provider as anchor.AnchorProvider, whirlpoolCtx);
+  let context: ProgramTestContext;
+  let client: BanksClient;
+  let provider: BankrunProvider;
+  let testFixture: TestFixture;
+  let whirlpoolCtx: WhirlpoolContext;
+  let fetcher: WhirlpoolAccountFetcherInterface;
+  let connection: Connection;
 
   before(async () => {
+    context = await startWithPrograms(".");
+    client = context.banksClient;
+    provider = new BankrunProvider(context);
+    connection = provider.connection;
+    testFixture = new TestFixture(context);
     await testFixture.init();
+    whirlpoolCtx = WhirlpoolContext.from(
+      provider.connection,
+      provider.wallet,
+      ORCA_WHIRLPOOL_PROGRAM_ID
+    );
+    fetcher = whirlpoolCtx.fetcher;
   });
 
   it("open position and increase liquidity", async () => {
@@ -48,15 +58,15 @@ describe("orca", () => {
       `Your TokenA Balance: ${await getTokenBalances(
         connection,
         poolInfo.tokenAMint,
-        userTokenAAccount,
-      )}`,
+        userTokenAAccount
+      )}`
     );
     console.log(
       `Your TokenB Balance: ${await getTokenBalances(
         connection,
         poolInfo.tokenBMint,
-        userTokenBAccount,
-      )}`,
+        userTokenBAccount
+      )}`
     );
 
     const a_to_b = true;
@@ -67,12 +77,12 @@ describe("orca", () => {
       poolData.tickSpacing,
       a_to_b,
       ORCA_WHIRLPOOL_PROGRAM_ID,
-      poolInfo.whirlpoolPda.publicKey,
+      poolInfo.whirlpoolPda.publicKey
     );
 
     const oracle = PDAUtil.getOracle(
       ORCA_WHIRLPOOL_PROGRAM_ID,
-      poolInfo.whirlpoolPda.publicKey,
+      poolInfo.whirlpoolPda.publicKey
     ).publicKey;
 
     const swap = WhirlpoolIx.swapIx(whirlpoolCtx.program, {
@@ -93,30 +103,6 @@ describe("orca", () => {
       oracle,
     });
 
-    const transaction = new TransactionBuilder(
-      connection,
-      wallet,
-      testFixture.getTxBuilderOpts(),
-    ).addInstruction({ instructions: swap.instructions, cleanupInstructions: [], signers: [] });
-
-    transaction.addSigner(userWallet);
-
-    const signature = await transaction.buildAndExecute();
-    const res = await connection.confirmTransaction(signature);
-
-    console.log(
-      `Your TokenA Balance: ${await getTokenBalances(
-        connection,
-        poolInfo.tokenAMint,
-        userTokenAAccount,
-      )}`,
-    );
-    console.log(
-      `Your TokenB Balance: ${await getTokenBalances(
-        connection,
-        poolInfo.tokenBMint,
-        userTokenBAccount,
-      )}`,
-    );
+    await testFixture.prepareAndProcessTransaction(swap.instructions, userWallet.publicKey);
   });
 });

@@ -32,7 +32,9 @@ pub mod lb_clmm {
 
     pub fn remove_liquidity_by_range<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, ModifyLiquidity<'info>>,
-        bin_liquidity_removal: BinLiquidityByRange,
+        from_bin_id: i32,
+        to_bin_id: i32,
+        bps_to_remove: u16,
     ) -> Result<()> {
         Ok(())
     }
@@ -41,8 +43,30 @@ pub mod lb_clmm {
         Ok(())
     }
 
+    pub fn claim_reward<'a, 'b, 'c: 'info, 'info>(ctx: Context<ClaimReward<'info>>) -> Result<()> {
+        Ok(())
+    }
+
     pub fn close_position<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<ClosePosition<'info>>,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn initialize_reward<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<InitializeReward<'info>>,
+        index: u64,
+        reward_duration: u64,
+        funder: Pubkey,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn fund_reward<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<FundReward<'info>>,
+        index: u64,
+        amount: u64,
+        carry_forward: bool,
     ) -> Result<()> {
         Ok(())
     }

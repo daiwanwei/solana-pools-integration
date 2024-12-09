@@ -107,13 +107,6 @@ impl Default for StrategyParameters {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone)]
-pub struct BinLiquidityByRange {
-    pub from_bin_id: i32,
-    pub to_bin_id: i32,
-    pub bps_to_remove: u16,
-}
-
 #[derive(Accounts)]
 pub struct ModifyLiquidity<'info> {
     #[account(mut)]
@@ -186,6 +179,34 @@ pub struct ClaimFee<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ClaimReward<'info> {
+    #[account(mut)]
+    pub lb_pair: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub position: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub bin_array_lower: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub bin_array_upper: Account<'info, AccountPlaceholder>,
+
+    pub sender: Signer<'info>,
+
+    #[account(mut)]
+    pub reward_vault: Account<'info, AccountPlaceholder>,
+    pub reward_mint: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub user_token_account: Account<'info, AccountPlaceholder>,
+
+    pub token_program: Account<'info, AccountPlaceholder>,
+
+    pub event_authority: Account<'info, AccountPlaceholder>,
+    pub program: Account<'info, AccountPlaceholder>,
+}
+
+#[derive(Accounts)]
 pub struct ClosePosition<'info> {
     #[account(mut)]
     pub position: Account<'info, AccountPlaceholder>,
@@ -203,6 +224,49 @@ pub struct ClosePosition<'info> {
     /// CHECK: Account to receive closed account rental SOL
     #[account(mut)]
     pub rent_receiver: Account<'info, AccountPlaceholder>,
+
+    pub event_authority: Account<'info, AccountPlaceholder>,
+    pub program: Account<'info, AccountPlaceholder>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeReward<'info> {
+    #[account(mut)]
+    pub lb_pair: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub reward_vault: Account<'info, AccountPlaceholder>,
+    pub reward_mint: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub token_program: Account<'info, AccountPlaceholder>,
+    pub system_program: Account<'info, AccountPlaceholder>,
+    pub rent: Account<'info, AccountPlaceholder>,
+
+    pub event_authority: Account<'info, AccountPlaceholder>,
+    pub program: Account<'info, AccountPlaceholder>,
+}
+
+#[derive(Accounts)]
+pub struct FundReward<'info> {
+    #[account(mut)]
+    pub lb_pair: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub reward_vault: Account<'info, AccountPlaceholder>,
+    pub reward_mint: Account<'info, AccountPlaceholder>,
+
+    #[account(mut)]
+    pub funder_token_account: Account<'info, AccountPlaceholder>,
+    #[account(mut)]
+    pub funder: Signer<'info>,
+
+    #[account(mut)]
+    pub bin_array: Account<'info, AccountPlaceholder>,
+
+    pub token_program: Account<'info, AccountPlaceholder>,
 
     pub event_authority: Account<'info, AccountPlaceholder>,
     pub program: Account<'info, AccountPlaceholder>,

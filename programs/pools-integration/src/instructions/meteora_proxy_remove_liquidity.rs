@@ -1,11 +1,13 @@
 use anchor_lang::prelude::*;
-use meteora_dlmm_cpi::{cpi, BinLiquidityByRange};
+use meteora_dlmm_cpi::cpi;
 
 use crate::instructions::meteora_proxy_add_liquidity::MeteoraProxyModifyLiquidity;
 
 pub fn handler<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyModifyLiquidity<'info>>,
-    bin_liquidity_removal: BinLiquidityByRange,
+    from_bin_id: i32,
+    to_bin_id: i32,
+    bps_to_remove: u16,
 ) -> Result<()> {
     let cpi_program = ctx.accounts.dlmm_program.to_account_info();
 
@@ -35,5 +37,5 @@ pub fn handler<'a, 'b, 'c, 'info>(
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts)
         .with_remaining_accounts(ctx.remaining_accounts.to_vec());
 
-    cpi::remove_liquidity_by_range(cpi_ctx, bin_liquidity_removal)
+    cpi::remove_liquidity_by_range(cpi_ctx, from_bin_id, to_bin_id, bps_to_remove)
 }

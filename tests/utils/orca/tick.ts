@@ -1,4 +1,4 @@
-import { PublicKey, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair, TransactionInstruction } from "@solana/web3.js";
 import {
   InitTickArrayParams,
   WhirlpoolContext,
@@ -9,7 +9,47 @@ import {
   TICK_ARRAY_SIZE,
 } from "@orca-so/whirlpools-sdk";
 
-import { PDA } from "@orca-so/common-sdk";
+import { PDA, Instruction } from "@orca-so/common-sdk";
+
+export function prepareInitTickArrayInstruction(
+  ctx: WhirlpoolContext,
+  whirlpool: PublicKey,
+  startTickIndex: number,
+  funder?: Keypair,
+): { params: InitTickArrayParams; ix: Instruction } {
+  const params = generateDefaultInitTickArrayParams(
+    ctx,
+    whirlpool,
+    startTickIndex,
+    funder?.publicKey,
+  );
+  const ix = WhirlpoolIx.initTickArrayIx(ctx.program, params);
+  return { params, ix };
+}
+
+export function prepareInitTickArrayInstructions(
+  ctx: WhirlpoolContext,
+  whirlpool: PublicKey,
+  startTickIndex: number,
+  arrayCount: number,
+  tickSpacing: number,
+  aToB: boolean,
+): { pda: PDA; ix: Instruction }[] {
+  const ticksInArray = tickSpacing * TICK_ARRAY_SIZE;
+  const direction = aToB ? -1 : 1;
+  const result: { pda: PDA; ix: Instruction }[] = [];
+
+  for (let i = 0; i < arrayCount; i++) {
+    const { params, ix } = prepareInitTickArrayInstruction(
+      ctx,
+      whirlpool,
+      startTickIndex + direction * ticksInArray * i,
+    );
+    result.push({ pda: params.tickArrayPda, ix });
+  }
+
+  return result;
+}
 
 export async function initTickArray(
   ctx: WhirlpoolContext,

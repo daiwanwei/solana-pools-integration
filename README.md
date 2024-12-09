@@ -10,14 +10,6 @@
    yarn install
    ```
 
-2. **Set Up Solana Test Validator**:
-
-   ```sh
-   cd dev-support/test-environments
-
-   ./start-test-validator.sh
-   ```
-
 ### 2. Build and Deploy the Program
 
 1. **Build the Program**: Use the Anchor CLI to build the program:
@@ -35,7 +27,7 @@
 
 1. **Run Tests**: Use the test script defined in `Anchor.toml` to run the tests:
    ```sh
-   anchor test --skip-local-validator --skip-deploy
+   anchor test
    ```
 
 This will execute all the test files located in the `tests` directory.

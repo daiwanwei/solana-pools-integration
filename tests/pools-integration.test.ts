@@ -270,20 +270,12 @@ describe("pools-integration", () => {
       .instruction();
 
     await testFixture.prepareAndProcessTransaction(
-      [
-        openPositionIx,
-        increaseLiquidityIx,
-        logPositionFeeIx,
-      ],
+      [openPositionIx, increaseLiquidityIx, logPositionFeeIx],
       userWallet.publicKey,
     );
 
     await testFixture.prepareAndProcessTransaction(
-      [
-        harvestIx,
-        decreaseLiquidityIx,
-        closePositionIx,
-      ],
+      [harvestIx, decreaseLiquidityIx, closePositionIx],
       userWallet.publicKey,
     );
   });
@@ -344,10 +336,7 @@ describe("pools-integration", () => {
       })
       .instruction();
 
-    await testFixture.prepareAndProcessTransaction(
-      [initializeRewardIx],
-      userWallet.publicKey,
-    );
+    await testFixture.prepareAndProcessTransaction([initializeRewardIx], userWallet.publicKey);
 
     const position = Keypair.generate();
 

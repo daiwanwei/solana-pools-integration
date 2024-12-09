@@ -19,7 +19,7 @@ export async function prepareCreateMintInstructions(
   connection: Connection,
   payer: PublicKey,
   authority: PublicKey,
-  decimals: number
+  decimals: number,
 ): Promise<{
   mint: PublicKey;
   instructions: TransactionInstruction[];
@@ -30,7 +30,7 @@ export async function prepareCreateMintInstructions(
     payer,
     authority,
     mint.publicKey,
-    decimals
+    decimals,
   );
   return {
     mint: mint.publicKey,
@@ -43,7 +43,7 @@ export async function createMintInstructions(
   payer: web3.PublicKey,
   authority: web3.PublicKey,
   mint: web3.PublicKey,
-  decimals: number
+  decimals: number,
 ) {
   let instructions = [
     web3.SystemProgram.createAccount({
@@ -61,7 +61,7 @@ export async function createMintInstructions(
 export function prepareCreateATAInstruction(
   mint: web3.PublicKey,
   owner: web3.PublicKey,
-  payer: web3.PublicKey
+  payer: web3.PublicKey,
 ): { ataAddress: web3.PublicKey; instruction: TransactionInstruction } {
   const ataAddress = getAssociatedTokenAddressSync(mint, owner);
   const instr = createAssociatedTokenAccountInstruction(payer, ataAddress, owner, mint);
@@ -77,7 +77,7 @@ async function prepareCreateTokenAccountInstruction(
   newAccountPubkey: PublicKey,
   mint: PublicKey,
   owner: PublicKey,
-  lamports?: number
+  lamports?: number,
 ): Promise<TransactionInstruction[]> {
   if (lamports === undefined) {
     lamports = await provider.connection.getMinimumBalanceForRentExemption(165);
@@ -98,7 +98,7 @@ export async function prepareMintToInstruction(
   payer: PublicKey,
   mint: PublicKey,
   destination: PublicKey,
-  amount: number | BN
+  amount: number | BN,
 ): Promise<TransactionInstruction> {
   const amountVal = amount instanceof BN ? BigInt(amount.toString()) : amount;
   return createMintToInstruction(mint, destination, payer, amountVal);
@@ -109,7 +109,7 @@ export async function prepareCreateAndMintToATAInstruction(
   payer: PublicKey,
   mint: PublicKey,
   amount: number | BN,
-  destinationWallet?: PublicKey
+  destinationWallet?: PublicKey,
 ): Promise<{ tokenAccount: PublicKey; instructions: TransactionInstruction[] }> {
   const destinationWalletKey = destinationWallet ? destinationWallet : payer;
 
@@ -118,12 +118,12 @@ export async function prepareCreateAndMintToATAInstruction(
   if (mint.equals(NATIVE_MINT)) {
     const rentExemption = await connection.getMinimumBalanceForRentExemption(
       AccountLayout.span,
-      "confirmed"
+      "confirmed",
     );
     const { address: tokenAccount, ...ix } = TokenUtil.createWrappedNativeAccountInstruction(
       destinationWalletKey,
       new BN(amount.toString()),
-      rentExemption
+      rentExemption,
     );
     return {
       tokenAccount,
@@ -139,7 +139,7 @@ export async function prepareCreateAndMintToATAInstruction(
     const { ataAddress, instruction } = prepareCreateATAInstruction(
       mint,
       destinationWalletKey,
-      payer
+      payer,
     );
 
     const mintTo = await prepareMintToInstruction(payer, mint, ataAddress, amount);
@@ -162,7 +162,7 @@ export async function getTokenBalance(provider: AnchorProvider, vault: web3.Publ
 export async function getTokenBalances(
   connection: web3.Connection,
   token: web3.PublicKey,
-  account: web3.PublicKey
+  account: web3.PublicKey,
 ) {
   const account_info = await connection.getAccountInfo(account);
   if (account_info === null) {

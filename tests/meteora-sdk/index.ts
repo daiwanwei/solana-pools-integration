@@ -40,7 +40,7 @@ export class Client {
       tokenX,
       tokenY,
       binStep,
-      baseFactor
+      baseFactor,
     );
     if (existsPool) {
       throw new Error("Pool already exists");
@@ -84,7 +84,7 @@ export class Client {
   }
 
   async initializePositionAndAddLiquidityByStrategy(
-    args: InitializePositionAndAddLiquidityByStrategyParams
+    args: InitializePositionAndAddLiquidityByStrategyParams,
   ): Promise<TransactionInstruction[]> {
     const { lbPair, totalXAmount, totalYAmount, positionPubKey, strategy, slippage, user } = args;
 
@@ -110,14 +110,14 @@ export class Client {
 
     const upperBinArrayIndex = BN.max(
       lowerBinArrayIndex.add(new BN(1)),
-      binIdToBinArrayIndex(new BN(maxBinId))
+      binIdToBinArrayIndex(new BN(maxBinId)),
     );
 
     const createBinArrayIxs = await this.createBinArraysIfNeeded(
       lbPair,
       upperBinArrayIndex,
       lowerBinArrayIndex,
-      user
+      user,
     );
 
     ixs.push(...createBinArrayIxs);
@@ -141,7 +141,7 @@ export class Client {
   }
 
   async addLiquidityByStrategy(
-    args: AddLiquidityByStrategyParams
+    args: AddLiquidityByStrategyParams,
   ): Promise<TransactionInstruction[]> {
     const { lbPair, totalXAmount, totalYAmount, positionPubKey, strategy, slippage, user } = args;
 
@@ -161,7 +161,7 @@ export class Client {
 
     const upperBinArrayIndex = BN.max(
       lowerBinArrayIndex.add(new BN(1)),
-      binIdToBinArrayIndex(new BN(maxBinId))
+      binIdToBinArrayIndex(new BN(maxBinId)),
     );
     const [binArrayUpper] = deriveBinArray(lbPair, upperBinArrayIndex, METEORA_CLMM_PROGRAM_ID);
 
@@ -224,13 +224,11 @@ export class Client {
   async removeLiquidity(args: RemoveLiquidityParams): Promise<TransactionInstruction[]> {
     const { positionPubKey, user, binIds, bps } = args;
 
-    const { lbPair, lowerBinId, owner, feeOwner } = await this.program.account.positionV2.fetch(
-      positionPubKey
-    );
+    const { lbPair, lowerBinId, owner, feeOwner } =
+      await this.program.account.positionV2.fetch(positionPubKey);
 
-    const { reserveX, reserveY, tokenXMint, tokenYMint } = await this.program.account.lbPair.fetch(
-      lbPair
-    );
+    const { reserveX, reserveY, tokenXMint, tokenYMint } =
+      await this.program.account.lbPair.fetch(lbPair);
 
     const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(lowerBinId));
     const upperBinArrayIndex = lowerBinArrayIndex.add(new BN(1));
@@ -252,19 +250,19 @@ export class Client {
         this.program.provider.connection,
         tokenYMint,
         walletToReceiveFee,
-        user
+        user,
       ),
       getOrCreateATAInstruction(
         this.program.provider.connection,
         tokenXMint,
         walletToReceiveFee,
-        user
+        user,
       ),
       getOrCreateATAInstruction(
         this.program.provider.connection,
         tokenYMint,
         walletToReceiveFee,
-        user
+        user,
       ),
     ]);
 
@@ -387,13 +385,11 @@ export class Client {
 
     const ixs: TransactionInstruction[] = [];
 
-    const { lbPair, lowerBinId, owner, feeOwner } = await this.program.account.positionV2.fetch(
-      positionPubKey
-    );
+    const { lbPair, lowerBinId, owner, feeOwner } =
+      await this.program.account.positionV2.fetch(positionPubKey);
 
-    const { reserveX, reserveY, tokenXMint, tokenYMint } = await this.program.account.lbPair.fetch(
-      lbPair
-    );
+    const { reserveX, reserveY, tokenXMint, tokenYMint } =
+      await this.program.account.lbPair.fetch(lbPair);
 
     const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(lowerBinId));
     const upperBinArrayIndex = lowerBinArrayIndex.add(new BN(1));
@@ -410,13 +406,13 @@ export class Client {
         this.program.provider.connection,
         tokenXMint,
         walletToReceiveFee,
-        user
+        user,
       ),
       getOrCreateATAInstruction(
         this.program.provider.connection,
         tokenYMint,
         walletToReceiveFee,
-        user
+        user,
       ),
     ]);
 
@@ -451,9 +447,8 @@ export class Client {
 
     const ixs: TransactionInstruction[] = [];
 
-    const { lbPair, lowerBinId, owner, feeOwner } = await this.program.account.positionV2.fetch(
-      positionPubKey
-    );
+    const { lbPair, lowerBinId, owner, feeOwner } =
+      await this.program.account.positionV2.fetch(positionPubKey);
 
     const { rewardInfos } = await this.program.account.lbPair.fetch(lbPair);
 
@@ -469,7 +464,7 @@ export class Client {
       const { ataPubKey, ix: rewardAtaIx } = await getOrCreateATAInstruction(
         this.program.provider.connection,
         rewardInfo.mint,
-        user
+        user,
       );
       rewardAtaIx && ixs.push(rewardAtaIx);
 
@@ -498,9 +493,8 @@ export class Client {
 
     const ixs: TransactionInstruction[] = [];
 
-    const { lbPair, lowerBinId, owner } = await this.program.account.positionV2.fetch(
-      positionPubKey
-    );
+    const { lbPair, lowerBinId, owner } =
+      await this.program.account.positionV2.fetch(positionPubKey);
 
     const lowerBinArrayIndex = binIdToBinArrayIndex(new BN(lowerBinId));
     const upperBinArrayIndex = lowerBinArrayIndex.add(new BN(1));
@@ -528,13 +522,13 @@ export class Client {
     poolId: PublicKey,
     upperBinArrayIndex: BN,
     lowerBinArrayIndex: BN,
-    funder: PublicKey
+    funder: PublicKey,
   ): Promise<TransactionInstruction[]> {
     const ixs: TransactionInstruction[] = [];
     console.log(`poolId: ${poolId.toBase58()}`);
     const binArrayIndexes: BN[] = Array.from(
       { length: upperBinArrayIndex.sub(lowerBinArrayIndex).toNumber() + 1 },
-      (_, index) => index + lowerBinArrayIndex.toNumber()
+      (_, index) => index + lowerBinArrayIndex.toNumber(),
     ).map((idx) => new BN(idx));
     for (const idx of binArrayIndexes) {
       const [binArray] = deriveBinArray(poolId, idx, METEORA_CLMM_PROGRAM_ID);
@@ -553,7 +547,7 @@ export class Client {
               eventAuthority: this.getEventAuthority(),
               program: this.program.programId,
             })
-            .instruction()
+            .instruction(),
         );
       }
     }
@@ -563,7 +557,7 @@ export class Client {
   getEventAuthority(): PublicKey {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("__event_authority")],
-      this.program.programId
+      this.program.programId,
     )[0];
   }
 }

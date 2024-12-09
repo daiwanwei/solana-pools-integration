@@ -118,7 +118,7 @@ export class TestFixture {
 
     this.raydiumClmmProgram = new Program<RaydiumClmm>(
       RAYDIUM_CLMM_IDL as RaydiumClmm,
-      this.provider
+      this.provider,
     );
     this.raydiumClient = new RaydiumClient(this.raydiumClmmProgram);
 
@@ -126,7 +126,7 @@ export class TestFixture {
     this.whirlpoolCtx = WhirlpoolContext.from(
       this.provider.connection,
       this.provider.wallet,
-      ORCA_WHIRLPOOL_PROGRAM_ID
+      ORCA_WHIRLPOOL_PROGRAM_ID,
     );
   }
 
@@ -152,7 +152,7 @@ export class TestFixture {
 
     await this.prepareAndProcessTransaction(
       [...token_1_instructions, ...token_2_instructions],
-      this.adminWallet
+      this.adminWallet,
     );
 
     let [token_a, token_b] = PoolUtil.orderMints(token_1, token_2);
@@ -174,19 +174,19 @@ export class TestFixture {
         connection,
         this.adminWallet,
         this.tokenAMint,
-        new BN(10_000_000_000_000)
+        new BN(10_000_000_000_000),
       );
     const { tokenAccount: userAtaB, instructions: tokenBInstructions } =
       await prepareCreateAndMintToATAInstruction(
         connection,
         this.adminWallet,
         this.tokenBMint,
-        new BN(10_000_000_000_000)
+        new BN(10_000_000_000_000),
       );
 
     await this.prepareAndProcessTransaction(
       [...tokenAInstructions, ...tokenBInstructions],
-      this.adminWallet
+      this.adminWallet,
     );
   }
 
@@ -195,11 +195,11 @@ export class TestFixture {
 
     const userTokenAAccount = getAssociatedTokenAddressSync(
       this.tokenAMint,
-      this.userInfo.wallet.publicKey
+      this.userInfo.wallet.publicKey,
     );
     const userTokenBAccount = getAssociatedTokenAddressSync(
       this.tokenBMint,
-      this.userInfo.wallet.publicKey
+      this.userInfo.wallet.publicKey,
     );
 
     this.userInfo.tokenAAccount = userTokenAAccount;
@@ -208,12 +208,12 @@ export class TestFixture {
     await this.airdropToken(
       this.userInfo.wallet.publicKey,
       this.tokenAMint,
-      new BN(1_000_000_000_000)
+      new BN(1_000_000_000_000),
     );
     await this.airdropToken(
       this.userInfo.wallet.publicKey,
       this.tokenBMint,
-      new BN(1_000_000_000_000)
+      new BN(1_000_000_000_000),
     );
   }
 
@@ -226,7 +226,7 @@ export class TestFixture {
       ORCA_WHIRLPOOLS_CONFIG,
       this.tokenAMint,
       this.tokenBMint,
-      tickSpacing
+      tickSpacing,
     );
 
     const tokenVaultAKeypair = Keypair.generate();
@@ -261,7 +261,7 @@ export class TestFixture {
     await this.initOrcaTickArrayRange(
       params.tickStartIndex,
       params.tickArrayCount,
-      params.tickSpacing
+      params.tickSpacing,
     );
     const tickUpperIndex = params.tickStartIndex + params.tickArrayCount * params.tickSpacing;
     const positionMint = await this.openOrcaPosition(params.tickStartIndex, tickUpperIndex);
@@ -269,7 +269,7 @@ export class TestFixture {
       positionMint,
       params.tickStartIndex,
       tickUpperIndex,
-      new BN(1_000_000_000)
+      new BN(1_000_000_000),
     );
   }
 
@@ -291,7 +291,7 @@ export class TestFixture {
     startTickIndex: number,
     arrayCount: number,
     tickSpacing: number,
-    aToB: boolean = false
+    aToB: boolean = false,
   ) {
     const instructions = prepareInitTickArrayInstructions(
       this.whirlpoolCtx,
@@ -299,19 +299,19 @@ export class TestFixture {
       startTickIndex,
       arrayCount,
       tickSpacing,
-      aToB
+      aToB,
     );
 
     await this.prepareAndProcessTransaction(
       instructions.map((i) => i.ix.instructions).flat(),
-      this.adminWallet
+      this.adminWallet,
     );
   }
 
   public async openOrcaPosition(
     tickLowerIndex: number,
     tickUpperIndex: number,
-    payer?: Keypair
+    payer?: Keypair,
   ): Promise<PublicKey> {
     const connection = this.getConnection();
     const positionMint = Keypair.generate();
@@ -338,7 +338,7 @@ export class TestFixture {
     tickLowerIndex: number,
     tickUpperIndex: number,
     amount: BN,
-    payer?: Keypair
+    payer?: Keypair,
   ): Promise<void> {
     const owner = payer?.publicKey || this.adminWallet;
     const connection = this.getConnection();
@@ -356,12 +356,12 @@ export class TestFixture {
       tickArrayLower: PDAUtil.getTickArray(
         this.whirlpoolCtx.program.programId,
         this.orcaPoolInfo.whirlpoolPda.publicKey,
-        TickUtil.getStartTickIndex(tickLowerIndex, this.orcaPoolInfo.tickSpacing)
+        TickUtil.getStartTickIndex(tickLowerIndex, this.orcaPoolInfo.tickSpacing),
       ).publicKey,
       tickArrayUpper: PDAUtil.getTickArray(
         this.whirlpoolCtx.program.programId,
         this.orcaPoolInfo.whirlpoolPda.publicKey,
-        TickUtil.getStartTickIndex(tickUpperIndex, this.orcaPoolInfo.tickSpacing)
+        TickUtil.getStartTickIndex(tickUpperIndex, this.orcaPoolInfo.tickSpacing),
       ).publicKey,
       positionAuthority: owner,
       liquidityAmount: amount,
@@ -371,7 +371,7 @@ export class TestFixture {
 
     await this.prepareAndProcessTransaction(
       [...increaseLiquidityIx.instructions],
-      this.adminWallet
+      this.adminWallet,
     );
   }
 
@@ -409,7 +409,7 @@ export class TestFixture {
       this.tokenAInfo.decimals,
       this.tokenBInfo.decimals,
       initSqrtPrice,
-      this.adminWallet
+      this.adminWallet,
     );
 
     await this.prepareAndProcessTransaction([ix], this.adminWallet);
@@ -421,12 +421,12 @@ export class TestFixture {
     this.raydiumPoolInfo.tokenAVault = getPdaPoolVaultId(
       CLMM_PROGRAM_ID,
       poolId,
-      this.tokenAMint
+      this.tokenAMint,
     ).publicKey;
     this.raydiumPoolInfo.tokenBVault = getPdaPoolVaultId(
       CLMM_PROGRAM_ID,
       poolId,
-      this.tokenBMint
+      this.tokenBMint,
     ).publicKey;
 
     return poolId;
@@ -435,7 +435,7 @@ export class TestFixture {
   public async createRaydiumPoolPosition(
     lowerPrice: Decimal,
     upperPrice: Decimal,
-    wallet?: Keypair
+    wallet?: Keypair,
   ): Promise<PublicKey> {
     const user = wallet?.publicKey || this.adminWallet;
     const poolId = this.raydiumPoolInfo.clmmPool;
@@ -448,7 +448,7 @@ export class TestFixture {
       lowerPrice,
       upperPrice,
       user,
-      user
+      user,
     );
 
     await this.prepareAndProcessTransaction([ix], user);
@@ -466,7 +466,7 @@ export class TestFixture {
       liquidity,
       new BN(1_000_000),
       new BN(1_000_000),
-      user
+      user,
     );
     await this.prepareAndProcessTransaction(ix, user);
   }
@@ -480,7 +480,7 @@ export class TestFixture {
       nftMint,
       liquidity,
       new BN(0),
-      new BN(0)
+      new BN(0),
     );
     await this.prepareAndProcessTransaction(ix, user);
   }
@@ -510,12 +510,12 @@ export class TestFixture {
     this.meteoraPoolInfo.tokenAVault = deriveReserve(
       this.tokenAMint,
       lbPair,
-      METEORA_CLMM_PROGRAM_ID
+      METEORA_CLMM_PROGRAM_ID,
     )[0];
     this.meteoraPoolInfo.tokenBVault = deriveReserve(
       this.tokenBMint,
       lbPair,
-      METEORA_CLMM_PROGRAM_ID
+      METEORA_CLMM_PROGRAM_ID,
     )[0];
 
     return lbPair;
@@ -527,7 +527,7 @@ export class TestFixture {
       this.meteoraPoolInfo.dlmmPool,
       this.tokenAInfo.decimals,
       this.tokenBInfo.decimals,
-      this.meteoraPoolInfo.binStep.toNumber()
+      this.meteoraPoolInfo.binStep.toNumber(),
     );
   }
 
@@ -545,7 +545,7 @@ export class TestFixture {
     const activeBinPricePerToken = fromPricePerLamport(
       Number(activeBin.price),
       this.tokenAInfo.decimals,
-      this.tokenBInfo.decimals
+      this.tokenBInfo.decimals,
     );
     const totalXAmount = amount;
     const totalYAmount = totalXAmount.mul(new BN(Number(activeBinPricePerToken)));
@@ -576,9 +576,8 @@ export class TestFixture {
 
   async removeMeteoraLiquidity(position: PublicKey, bps: BN, wallet?: Keypair): Promise<void> {
     let user = wallet?.publicKey || this.provider.wallet.publicKey;
-    const { lbPair, lowerBinId, upperBinId } = await this.lbClmmProgram.account.positionV2.fetch(
-      position
-    );
+    const { lbPair, lowerBinId, upperBinId } =
+      await this.lbClmmProgram.account.positionV2.fetch(position);
 
     const binIdsToRemove = (
       await getBins(
@@ -588,7 +587,7 @@ export class TestFixture {
         upperBinId,
         this.tokenAInfo.decimals,
         this.tokenBInfo.decimals,
-        this.meteoraPoolInfo.binStep.toNumber()
+        this.meteoraPoolInfo.binStep.toNumber(),
       )
     ).map((bin) => bin.binId);
 
@@ -650,7 +649,7 @@ export class TestFixture {
   async getOrCreateATA(
     connection: Connection,
     owner: PublicKey,
-    mint: PublicKey
+    mint: PublicKey,
   ): Promise<PublicKey> {
     const ata = getAssociatedTokenAddressSync(mint, owner);
     try {
@@ -678,7 +677,7 @@ export class TestFixture {
   async prepareAndProcessTransaction(
     instructions: TransactionInstruction[],
     payer: PublicKey,
-    signers?: Keypair[]
+    signers?: Keypair[],
   ): Promise<BanksTransactionMeta> {
     const msg = new TransactionMessage({
       payerKey: payer,
@@ -700,26 +699,25 @@ export class TestFixture {
 
   async getRaydiumPositionFee(
     pool: PublicKey,
-    nftMint: PublicKey
+    nftMint: PublicKey,
   ): Promise<{
     feeX: BN;
     feeY: BN;
   }> {
     const poolState = await this.raydiumClmmProgram.account.poolState.fetch(pool);
     const { publicKey: personalPosition } = getPdaPersonalPositionAddress(CLMM_PROGRAM_ID, nftMint);
-    const positionAccount = await this.raydiumClmmProgram.account.personalPositionState.fetch(
-      personalPosition
-    );
+    const positionAccount =
+      await this.raydiumClmmProgram.account.personalPositionState.fetch(personalPosition);
 
     const tickLowerState = await this.raydiumClient.getTickState(
       pool,
       positionAccount.tickLowerIndex,
-      poolState.tickSpacing
+      poolState.tickSpacing,
     );
     const tickUpperState = await this.raydiumClient.getTickState(
       pool,
       positionAccount.tickUpperIndex,
-      poolState.tickSpacing
+      poolState.tickSpacing,
     );
 
     const tokenFees = PositionUtils.GetPositionFeesV2(
@@ -732,7 +730,7 @@ export class TestFixture {
       poolState.feeGrowthGlobal1X64,
       poolState.tickCurrent,
       tickLowerState,
-      tickUpperState
+      tickUpperState,
     );
 
     return {

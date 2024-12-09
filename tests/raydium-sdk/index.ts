@@ -51,7 +51,7 @@ export class Client {
     tokenDecimals0: number,
     tokenDecimals1: number,
     initialPrice: Decimal,
-    user: PublicKey
+    user: PublicKey,
   ): Promise<{
     ix: TransactionInstruction;
     poolId: PublicKey;
@@ -63,7 +63,7 @@ export class Client {
     initPrice: Decimal;
   }> {
     const [mintA, mintADecimals, mintB, mintBDecimals, initPrice] = new BN(
-      new PublicKey(tokenMint1.toBuffer()).toBuffer()
+      new PublicKey(tokenMint1.toBuffer()).toBuffer(),
     ).lt(new BN(new PublicKey(tokenMint0.toBuffer()).toBuffer()))
       ? [tokenMint1, tokenDecimals1, tokenMint0, tokenDecimals0, new Decimal(1).div(initialPrice)]
       : [tokenMint0, tokenDecimals0, tokenMint1, tokenDecimals1, initialPrice];
@@ -71,7 +71,7 @@ export class Client {
     const initialPriceX64 = SqrtPriceMath.priceToSqrtPriceX64(
       initPrice,
       mintADecimals,
-      mintBDecimals
+      mintBDecimals,
     );
 
     const { publicKey: poolId } = getPdaPoolId(this.program.programId, ammConfigId, mintA, mintB);
@@ -118,7 +118,7 @@ export class Client {
     lowerPrice: Decimal,
     upperPrice: Decimal,
     user: PublicKey,
-    payer?: PublicKey
+    payer?: PublicKey,
   ): Promise<{ ix: TransactionInstruction; nftMint: PublicKey; personalPosition: PublicKey }> {
     const { tokenMint0, tokenMint1, mintDecimals0, mintDecimals1, tickSpacing } =
       await this.program.account.poolState.fetch(poolId);
@@ -134,7 +134,7 @@ export class Client {
       lowerPrice,
       mintDecimals0,
       mintDecimals1,
-      tickSpacing
+      tickSpacing,
     );
 
     const {
@@ -146,7 +146,7 @@ export class Client {
       upperPrice,
       mintDecimals0,
       mintDecimals1,
-      tickSpacing
+      tickSpacing,
     );
 
     const nftMint = Keypair.generate();
@@ -154,13 +154,13 @@ export class Client {
     const { publicKey: metadataAccount } = getPdaMetadataKey(nftMint.publicKey);
     const { publicKey: personalPosition } = getPdaPersonalPositionAddress(
       CLMM_PROGRAM_ID,
-      nftMint.publicKey
+      nftMint.publicKey,
     );
     const { publicKey: protocolPosition } = getPdaProtocolPositionAddress(
       CLMM_PROGRAM_ID,
       poolId,
       lowerTick,
-      upperTick
+      upperTick,
     );
 
     const tokenAccountA = getAssociatedTokenAddressSync(tokenMint0, user);
@@ -192,7 +192,7 @@ export class Client {
         amount0Max,
         amount1Max,
         false,
-        false
+        false,
       )
       .accounts({
         payer,
@@ -235,7 +235,7 @@ export class Client {
     liquidity: BN,
     amountMaxA: BN,
     amountMaxB: BN,
-    payer?: PublicKey
+    payer?: PublicKey,
   ): Promise<TransactionInstruction[]> {
     const ixs = [];
 
@@ -267,7 +267,7 @@ export class Client {
       CLMM_PROGRAM_ID,
       poolId,
       tickLowerIndex,
-      tickUpperIndex
+      tickUpperIndex,
     );
 
     const tokenAVault = getPdaPoolVaultId(CLMM_PROGRAM_ID, poolId, tokenMint0).publicKey;
@@ -319,7 +319,7 @@ export class Client {
     nftMint: PublicKey,
     liquidity: BN,
     amountMinA: BN,
-    amountMinB: BN
+    amountMinB: BN,
   ) {
     const ixs = [];
     const { tokenMint0, tokenMint1, mintDecimals0, mintDecimals1, tickSpacing, rewardInfos } =
@@ -357,7 +357,7 @@ export class Client {
       CLMM_PROGRAM_ID,
       poolId,
       tickLowerIndex,
-      tickUpperIndex
+      tickUpperIndex,
     );
 
     const tokenAccountA = getAssociatedTokenAddressSync(tokenMint0, user);

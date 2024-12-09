@@ -33,7 +33,7 @@ describe("orca", () => {
     whirlpoolCtx = WhirlpoolContext.from(
       provider.connection,
       provider.wallet,
-      ORCA_WHIRLPOOL_PROGRAM_ID
+      ORCA_WHIRLPOOL_PROGRAM_ID,
     );
     fetcher = whirlpoolCtx.fetcher;
   });
@@ -58,15 +58,15 @@ describe("orca", () => {
       `Your TokenA Balance: ${await getTokenBalances(
         connection,
         poolInfo.tokenAMint,
-        userTokenAAccount
-      )}`
+        userTokenAAccount,
+      )}`,
     );
     console.log(
       `Your TokenB Balance: ${await getTokenBalances(
         connection,
         poolInfo.tokenBMint,
-        userTokenBAccount
-      )}`
+        userTokenBAccount,
+      )}`,
     );
 
     const a_to_b = true;
@@ -77,12 +77,12 @@ describe("orca", () => {
       poolData.tickSpacing,
       a_to_b,
       ORCA_WHIRLPOOL_PROGRAM_ID,
-      poolInfo.whirlpoolPda.publicKey
+      poolInfo.whirlpoolPda.publicKey,
     );
 
     const oracle = PDAUtil.getOracle(
       ORCA_WHIRLPOOL_PROGRAM_ID,
-      poolInfo.whirlpoolPda.publicKey
+      poolInfo.whirlpoolPda.publicKey,
     ).publicKey;
 
     const swap = WhirlpoolIx.swapIx(whirlpoolCtx.program, {

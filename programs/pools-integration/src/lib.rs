@@ -153,9 +153,11 @@ pub mod pools_integration {
 
     pub fn meteora_proxy_remove_liquidity<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyModifyLiquidity<'info>>,
-        bin_liquidity_removal: BinLiquidityByRange,
+        from_bin_id: i32,
+        to_bin_id: i32,
+        bps_to_remove: u16,
     ) -> Result<()> {
-        meteora_proxy_remove_liquidity::handler(ctx, bin_liquidity_removal)
+        meteora_proxy_remove_liquidity::handler(ctx, from_bin_id, to_bin_id, bps_to_remove)
     }
 
     pub fn meteora_log_position_fee(ctx: Context<MeteoraLogPositionFee>) -> Result<()> {
@@ -168,10 +170,25 @@ pub mod pools_integration {
         meteora_proxy_claim_fee::handler(ctx)
     }
 
+    pub fn meteora_proxy_claim_reward<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyClaimReward<'info>>,
+    ) -> Result<()> {
+        meteora_proxy_claim_reward::handler(ctx)
+    }
+
     pub fn meteora_proxy_close_position<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyClosePosition<'info>>,
     ) -> Result<()> {
         meteora_proxy_close_position::handler(ctx)
+    }
+
+    pub fn meteora_proxy_initialize_reward<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, MeteoraProxyInitializeReward<'info>>,
+        index: u64,
+        reward_duration: u64,
+        funder: Pubkey,
+    ) -> Result<()> {
+        meteora_proxy_initialize_reward::handler(ctx, index, reward_duration, funder)
     }
 
     pub fn meteora_harvest<'a, 'b, 'c: 'info, 'info>(

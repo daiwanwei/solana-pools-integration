@@ -5,6 +5,7 @@ resolution = true
 skip-lint  = false
 
 [programs.localnet]
+liquidity_proxy   = "GThwS7XKza6nKBgSMDstt1uVGrgEvfmLvkFq6C6tYdar"
 pools_integration = "GFa3wVLJEFEcS8DS4ey4QKj71Ye9Eposbicr9DQf7aah"
 
 [registry]
@@ -18,5 +19,6 @@ wallet  = "~/.config/solana/id.json"
 test                   = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/**.test.ts"
 test-meteora           = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/meteora.test.ts"
 test-orca              = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/orca.test.ts"
-test-raydium           = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/raydium.test.ts"
 test-pools-integration = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/pools-integration.test.ts"
+test-raydium           = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/raydium.test.ts"
+test-liquidity-proxy   = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/liquidity-proxy.test.ts"

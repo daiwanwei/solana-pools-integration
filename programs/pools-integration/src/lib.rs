@@ -5,7 +5,7 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
-use meteora_dlmm_cpi::{BinLiquidityByRange, LiquidityParameterByStrategy};
+use meteora_dlmm_cpi::LiquidityParameterByStrategy;
 
 pub use constants::*;
 pub use instructions::*;

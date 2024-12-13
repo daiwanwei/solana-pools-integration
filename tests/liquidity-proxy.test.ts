@@ -15,6 +15,7 @@ import {
   TickUtils as RaydiumTickUtils,
 } from "@raydium-io/raydium-sdk-v2";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { deriveRaydiumUserPosition } from "./utils/derive";
 
 describe("liquidity-proxy", () => {
   let context: ProgramTestContext;
@@ -95,6 +96,13 @@ describe("liquidity-proxy", () => {
     const metadataAccount = getPdaMetadataKey(positionMint.publicKey);
 
     const raydiumProtocolPosition = Keypair.generate();
+
+    const adminPositionPda = deriveRaydiumUserPosition(
+      raydiumProtocolPosition.publicKey,
+      admin,
+      program.programId,
+    );
+
     await program.methods
       .openRaydiumPosition(
         tickLower,
@@ -111,6 +119,7 @@ describe("liquidity-proxy", () => {
         signer: admin,
         config,
         raydiumProtocolPosition: raydiumProtocolPosition.publicKey,
+        raydiumUserPosition: adminPositionPda,
         clmmProgram: CLMM_PROGRAM_ID,
         payer: owner,
         positionNftOwner: owner,
@@ -130,6 +139,37 @@ describe("liquidity-proxy", () => {
         vault1Mint: poolInfo.tokenBMint,
       })
       .signers([raydiumProtocolPosition, positionMint, userWallet])
+      .rpc();
+
+    const userPositionPda = deriveRaydiumUserPosition(
+      raydiumProtocolPosition.publicKey,
+      userWallet.publicKey,
+      program.programId,
+    );
+
+    await program.methods
+      .increaseRaydiumLiquidity(new BN(10), new BN(100_000_000), new BN(100_000_000), false)
+      .accounts({
+        signer: userWallet.publicKey,
+        config,
+        raydiumProtocolPosition: raydiumProtocolPosition.publicKey,
+        raydiumUserPosition: userPositionPda,
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftOwner: owner,
+        nftAccount: positionTokenAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        tokenAccount0: userTokenAAccount,
+        tokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+      })
+      .signers([userWallet])
       .rpc();
   });
 });

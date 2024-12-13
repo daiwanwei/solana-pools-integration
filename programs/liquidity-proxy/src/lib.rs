@@ -49,8 +49,14 @@ pub mod liquidity_proxy {
         )
     }
 
-    pub fn increase_raydium_liquidity(ctx: Context<IncreaseRaydiumLiquidity>) -> Result<()> {
-        increase_raydium_liquidity::handler(ctx)
+    pub fn increase_raydium_liquidity<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, IncreaseRaydiumLiquidity<'info>>,
+        liquidity: u128,
+        amount_0_max: u64,
+        amount_1_max: u64,
+        base_flag: Option<bool>,
+    ) -> Result<()> {
+        increase_raydium_liquidity::handler(ctx, liquidity, amount_0_max, amount_1_max, base_flag)
     }
 
     pub fn decrease_raydium_liquidity(ctx: Context<DecreaseRaydiumLiquidity>) -> Result<()> {

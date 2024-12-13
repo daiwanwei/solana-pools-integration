@@ -7,4 +7,10 @@ pub enum ErrorCode {
 
     #[msg("Invalid admin")]
     InvalidAdmin,
+
+    #[msg("Invalid user")]
+    InvalidUser,
+
+    #[msg("Overflow")]
+    Overflow,
 }

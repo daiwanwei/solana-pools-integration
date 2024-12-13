@@ -17,6 +17,6 @@ no-log-ix-name = []
 idl-build      = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 
 [dependencies]
-anchor-lang      = { workspace = true }
+anchor-lang      = { workspace = true, features = ["init-if-needed"] }
 anchor-spl       = { workspace = true, features = ["metadata"] }
 raydium-clmm-cpi = { workspace = true }

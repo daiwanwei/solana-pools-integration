@@ -1,11 +1,11 @@
 import { BankrunProvider } from "anchor-bankrun";
 import { BanksClient, ProgramTestContext } from "solana-bankrun";
 import { BN, Program } from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { TestFixture } from "./fixtures";
 import IDL from "../target/idl/liquidity_proxy.json";
 import { LiquidityProxy } from "../target/types/liquidity_proxy";
-import { startWithPrograms } from "./utils/bankrun";
+import { prepareTx, sendAndConfirm, startWithPrograms } from "./utils/bankrun";
 import {
   CLMM_PROGRAM_ID,
   getPdaPersonalPositionAddress,
@@ -15,7 +15,11 @@ import {
   TickUtils as RaydiumTickUtils,
 } from "@raydium-io/raydium-sdk-v2";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { deriveRaydiumUserPosition } from "./utils/derive";
+import {
+  deriveRaydiumPositionVault,
+  deriveRaydiumProtocolPosition,
+  deriveRaydiumUserPosition,
+} from "./utils/derive";
 
 describe("liquidity-proxy", () => {
   let context: ProgramTestContext;
@@ -23,6 +27,7 @@ describe("liquidity-proxy", () => {
   let provider: BankrunProvider;
   let program: Program<LiquidityProxy>;
   let testFixture: TestFixture;
+
   before(async () => {
     context = await startWithPrograms(".");
     client = context.banksClient;
@@ -57,10 +62,7 @@ describe("liquidity-proxy", () => {
       tokenBAccount: userTokenBAccount,
     } = await testFixture.getUserInfo();
 
-    const owner = userWallet.publicKey;
-
     const positionMint = Keypair.generate();
-    const positionTokenAccount = getAssociatedTokenAddressSync(positionMint.publicKey, owner);
 
     const position = getPdaPersonalPositionAddress(CLMM_PROGRAM_ID, positionMint.publicKey);
 
@@ -95,15 +97,38 @@ describe("liquidity-proxy", () => {
 
     const metadataAccount = getPdaMetadataKey(positionMint.publicKey);
 
-    const raydiumProtocolPosition = Keypair.generate();
+    const raydiumProtocolPosition = deriveRaydiumProtocolPosition(
+      poolInfo.clmmPool,
+      tickLower,
+      tickUpper,
+      program.programId,
+    );
 
     const adminPositionPda = deriveRaydiumUserPosition(
-      raydiumProtocolPosition.publicKey,
+      raydiumProtocolPosition,
       admin,
       program.programId,
     );
 
-    await program.methods
+    const positionVault0Pda = deriveRaydiumPositionVault(
+      raydiumProtocolPosition,
+      poolInfo.tokenAMint,
+      program.programId,
+    );
+
+    const positionVault1Pda = deriveRaydiumPositionVault(
+      raydiumProtocolPosition,
+      poolInfo.tokenBMint,
+      program.programId,
+    );
+
+    const nftAccount = getAssociatedTokenAddressSync(
+      positionMint.publicKey,
+      raydiumProtocolPosition,
+      true,
+    );
+
+    const openRaydiumPositionIx = await program.methods
       .openRaydiumPosition(
         tickLower,
         tickUpper,
@@ -118,45 +143,81 @@ describe("liquidity-proxy", () => {
       .accounts({
         signer: admin,
         config,
-        raydiumProtocolPosition: raydiumProtocolPosition.publicKey,
+        raydiumProtocolPosition: raydiumProtocolPosition,
         raydiumUserPosition: adminPositionPda,
+        positionVault0: positionVault0Pda,
+        positionVault1: positionVault1Pda,
         clmmProgram: CLMM_PROGRAM_ID,
-        payer: owner,
-        positionNftOwner: owner,
         positionNftMint: positionMint.publicKey,
-        positionNftAccount: positionTokenAccount,
+        positionNftAccount: nftAccount,
         metadataAccount: metadataAccount.publicKey,
         poolState: poolInfo.clmmPool,
         protocolPosition: protocolPositionPda.publicKey,
         personalPosition: position.publicKey,
         tickArrayLower: tickArrayLower.publicKey,
         tickArrayUpper: tickArrayUpper.publicKey,
-        tokenAccount0: userTokenAAccount,
-        tokenAccount1: userTokenBAccount,
+        tokenAccount0: getAssociatedTokenAddressSync(poolInfo.tokenAMint, admin),
+        tokenAccount1: getAssociatedTokenAddressSync(poolInfo.tokenBMint, admin),
         tokenVault0: poolInfo.tokenAVault,
         tokenVault1: poolInfo.tokenBVault,
         vault0Mint: poolInfo.tokenAMint,
         vault1Mint: poolInfo.tokenBMint,
       })
-      .signers([raydiumProtocolPosition, positionMint, userWallet])
-      .rpc();
+      .signers([positionMint])
+      .instruction();
+
+    await sendAndConfirm(provider, await prepareTx(client, admin, [openRaydiumPositionIx]), [
+      positionMint,
+    ]);
 
     const userPositionPda = deriveRaydiumUserPosition(
-      raydiumProtocolPosition.publicKey,
+      raydiumProtocolPosition,
       userWallet.publicKey,
       program.programId,
     );
 
-    await program.methods
-      .increaseRaydiumLiquidity(new BN(10), new BN(100_000_000), new BN(100_000_000), false)
+    const accounts = {
+      signer: userWallet.publicKey,
+      config,
+      raydiumProtocolPosition: raydiumProtocolPosition,
+      raydiumUserPosition: userPositionPda,
+      positionVault0: positionVault0Pda,
+      positionVault1: positionVault1Pda,
+      clmmProgram: CLMM_PROGRAM_ID,
+      nftAccount: nftAccount,
+      poolState: poolInfo.clmmPool,
+      protocolPosition: protocolPositionPda.publicKey,
+      personalPosition: position.publicKey,
+      tickArrayLower: tickArrayLower.publicKey,
+      tickArrayUpper: tickArrayUpper.publicKey,
+      tokenAccount0: userTokenAAccount,
+      tokenAccount1: userTokenBAccount,
+      tokenVault0: poolInfo.tokenAVault,
+      tokenVault1: poolInfo.tokenBVault,
+      vault0Mint: poolInfo.tokenAMint,
+      vault1Mint: poolInfo.tokenBMint,
+    };
+
+    for (let [key, value] of Object.entries(accounts)) {
+      console.log(key, value.toString());
+    }
+    const increaseRaydiumLiquidityIx = await program.methods
+      .increaseRaydiumLiquidity(
+        userWallet.publicKey,
+        new BN(10),
+        new BN(100_000_000),
+        new BN(100_000_000),
+        false,
+      )
       .accounts({
         signer: userWallet.publicKey,
         config,
-        raydiumProtocolPosition: raydiumProtocolPosition.publicKey,
+        raydiumProtocolPosition: raydiumProtocolPosition,
         raydiumUserPosition: userPositionPda,
+        positionVault0: positionVault0Pda,
+        positionVault1: positionVault1Pda,
         clmmProgram: CLMM_PROGRAM_ID,
-        nftOwner: owner,
-        nftAccount: positionTokenAccount,
+        nftAccount: nftAccount,
         poolState: poolInfo.clmmPool,
         protocolPosition: protocolPositionPda.publicKey,
         personalPosition: position.publicKey,
@@ -170,6 +231,17 @@ describe("liquidity-proxy", () => {
         vault1Mint: poolInfo.tokenBMint,
       })
       .signers([userWallet])
-      .rpc();
+      .instruction();
+
+    // await sendAndConfirm(
+    //   provider,
+    //   await prepareTx(client, userWallet.publicKey, [increaseRaydiumLiquidityIx]),
+    //   []
+    // );
+    await testFixture.prepareAndProcessTransaction(
+      [increaseRaydiumLiquidityIx],
+      userWallet.publicKey,
+      [],
+    );
   });
 });

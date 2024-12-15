@@ -18,9 +18,11 @@ use crate::{
         config::Config, protocol_position::RaydiumProtocolPosition,
         user_position::RaydiumUserPosition,
     },
+    utils::token::{transfer_from_position_vault_to_user, transfer_from_user_to_position_vault},
 };
 
 #[derive(Accounts)]
+#[instruction(reciever: Pubkey)]
 pub struct IncreaseRaydiumLiquidity<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -28,7 +30,8 @@ pub struct IncreaseRaydiumLiquidity<'info> {
     #[account(mut)]
     pub config: Account<'info, Config>,
 
-    pub raydium_protocol_position: Account<'info, RaydiumProtocolPosition>,
+    #[account(mut)]
+    pub raydium_protocol_position: Box<Account<'info, RaydiumProtocolPosition>>,
 
     #[account(
         init_if_needed,
@@ -37,18 +40,17 @@ pub struct IncreaseRaydiumLiquidity<'info> {
         seeds = [
             b"raydium_user_position",
             raydium_protocol_position.key().as_ref(),
-            signer.key().as_ref(),
+            reciever.as_ref(),
         ],
         bump,
     )]
-    pub raydium_user_position: Account<'info, RaydiumUserPosition>,
+    pub raydium_user_position: Box<Account<'info, RaydiumUserPosition>>,
 
     pub clmm_program: Program<'info, AmmV3>,
-    /// Pays to mint the position
-    pub nft_owner: Signer<'info>,
 
     /// The token account for nft
     #[account(
+        mut,
         constraint = nft_account.mint == personal_position.nft_mint,
         token::token_program = token_program,
     )]
@@ -97,6 +99,18 @@ pub struct IncreaseRaydiumLiquidity<'info> {
     )]
     pub token_account_1: Box<InterfaceAccount<'info, TokenAccount>>,
 
+    #[account(
+        mut,
+        token::mint = token_vault_0.mint
+    )]
+    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = token_vault_1.mint
+    )]
+    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
+
     /// The address that holds pool tokens for token_0
     #[account(
         mut,
@@ -121,13 +135,15 @@ pub struct IncreaseRaydiumLiquidity<'info> {
 
     /// The mint of token vault 0
     #[account(
-            address = token_vault_0.mint
+        mut,
+        address = token_vault_0.mint
     )]
     pub vault_0_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// The mint of token vault 1
     #[account(
-            address = token_vault_1.mint
+        mut,
+        address = token_vault_1.mint
     )]
     pub vault_1_mint: Box<InterfaceAccount<'info, Mint>>,
     // remaining account
@@ -143,21 +159,42 @@ pub struct IncreaseRaydiumLiquidity<'info> {
 
 pub fn handler<'a, 'b, 'c: 'info, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, IncreaseRaydiumLiquidity<'info>>,
+    reciever: Pubkey,
     liquidity: u128,
     amount_0_max: u64,
     amount_1_max: u64,
     base_flag: Option<bool>,
 ) -> Result<()> {
+    transfer_from_user_to_position_vault(
+        ctx.accounts.signer.clone(),
+        &ctx.accounts.token_account_0.to_account_info(),
+        &ctx.accounts.position_vault_0.to_account_info(),
+        Some(ctx.accounts.vault_0_mint.clone()),
+        &ctx.accounts.token_program.to_account_info(),
+        Some(ctx.accounts.token_program_2022.to_account_info()),
+        amount_0_max,
+    )?;
+
+    transfer_from_user_to_position_vault(
+        ctx.accounts.signer.clone(),
+        &ctx.accounts.token_account_1.to_account_info(),
+        &ctx.accounts.position_vault_1.to_account_info(),
+        Some(ctx.accounts.vault_1_mint.clone()),
+        &ctx.accounts.token_program.to_account_info(),
+        Some(ctx.accounts.token_program_2022.to_account_info()),
+        amount_1_max,
+    )?;
+
     let cpi_accounts = cpi::accounts::IncreaseLiquidityV2 {
-        nft_owner: ctx.accounts.nft_owner.to_account_info(),
+        nft_owner: ctx.accounts.raydium_protocol_position.to_account_info(),
         nft_account: ctx.accounts.nft_account.to_account_info(),
         pool_state: ctx.accounts.pool_state.to_account_info(),
         protocol_position: ctx.accounts.protocol_position.to_account_info(),
         personal_position: ctx.accounts.personal_position.to_account_info(),
         tick_array_lower: ctx.accounts.tick_array_lower.to_account_info(),
         tick_array_upper: ctx.accounts.tick_array_upper.to_account_info(),
-        token_account_0: ctx.accounts.token_account_0.to_account_info(),
-        token_account_1: ctx.accounts.token_account_1.to_account_info(),
+        token_account_0: ctx.accounts.position_vault_0.to_account_info(),
+        token_account_1: ctx.accounts.position_vault_1.to_account_info(),
         token_vault_0: ctx.accounts.token_vault_0.to_account_info(),
         token_vault_1: ctx.accounts.token_vault_1.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
@@ -165,8 +202,27 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         vault_0_mint: ctx.accounts.vault_0_mint.to_account_info(),
         vault_1_mint: ctx.accounts.vault_1_mint.to_account_info(),
     };
-    let cpi_context = CpiContext::new(ctx.accounts.clmm_program.to_account_info(), cpi_accounts)
-        .with_remaining_accounts(ctx.remaining_accounts.to_vec());
+
+    let pool_state_key = ctx.accounts.raydium_protocol_position.raydium_pool;
+    let signer_seeds: [&[&[u8]]; 1] = {
+        let tick_lower_index = ctx.accounts.raydium_protocol_position.tick_lower_index;
+        let tick_upper_index = ctx.accounts.raydium_protocol_position.tick_upper_index;
+        let bump = ctx.accounts.raydium_protocol_position.bump;
+        [&[
+            b"raydium_protocol_position",
+            pool_state_key.as_ref(),
+            &tick_lower_index.to_le_bytes(),
+            &tick_upper_index.to_le_bytes(),
+            &[bump],
+        ]]
+    };
+
+    let cpi_context = CpiContext::new_with_signer(
+        ctx.accounts.clmm_program.to_account_info(),
+        cpi_accounts,
+        &signer_seeds,
+    )
+    .with_remaining_accounts(ctx.remaining_accounts.to_vec());
     cpi::increase_liquidity_v2(cpi_context, liquidity, amount_0_max, amount_1_max, base_flag)?;
 
     ctx.accounts.personal_position.reload()?;
@@ -187,11 +243,11 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
     if ctx.accounts.raydium_user_position.raydium_protocol_position == Pubkey::default() {
         ctx.accounts.raydium_user_position.bump = ctx.bumps.raydium_user_position;
         ctx.accounts.raydium_user_position.shares = liquidity;
-        ctx.accounts.raydium_user_position.owner = ctx.accounts.signer.key();
+        ctx.accounts.raydium_user_position.owner = reciever;
         ctx.accounts.raydium_user_position.raydium_protocol_position =
             ctx.accounts.raydium_protocol_position.key();
     } else {
-        if ctx.accounts.raydium_user_position.owner != ctx.accounts.signer.key() {
+        if ctx.accounts.raydium_user_position.owner != reciever {
             return Err(ErrorCode::InvalidUser.into());
         }
         ctx.accounts.raydium_user_position.shares = ctx
@@ -209,6 +265,32 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         ctx.accounts.personal_position.token_fees_owed_0;
     ctx.accounts.raydium_user_position.token_fees_owed_1 =
         ctx.accounts.personal_position.token_fees_owed_1;
+
+    // transfer remaining token to user
+    ctx.accounts.position_vault_0.reload()?;
+    ctx.accounts.position_vault_1.reload()?;
+    let remaining_token_0 = ctx.accounts.position_vault_0.amount;
+    let remaining_token_1 = ctx.accounts.position_vault_1.amount;
+
+    transfer_from_position_vault_to_user(
+        ctx.accounts.raydium_protocol_position.clone(),
+        &ctx.accounts.position_vault_0.to_account_info(),
+        &ctx.accounts.token_account_0.to_account_info(),
+        Some(ctx.accounts.vault_0_mint.clone()),
+        &ctx.accounts.token_program.to_account_info(),
+        Some(ctx.accounts.token_program_2022.to_account_info()),
+        remaining_token_0,
+    )?;
+
+    transfer_from_position_vault_to_user(
+        ctx.accounts.raydium_protocol_position.clone(),
+        &ctx.accounts.position_vault_1.to_account_info(),
+        &ctx.accounts.token_account_1.to_account_info(),
+        Some(ctx.accounts.vault_1_mint.clone()),
+        &ctx.accounts.token_program.to_account_info(),
+        Some(ctx.accounts.token_program_2022.to_account_info()),
+        remaining_token_1,
+    )?;
 
     Ok(())
 }

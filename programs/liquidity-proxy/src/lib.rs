@@ -4,6 +4,7 @@ pub mod instructions;
 pub mod libraries;
 pub mod math;
 pub mod state;
+pub mod utils;
 
 use anchor_lang::prelude::*;
 
@@ -53,12 +54,20 @@ pub mod liquidity_proxy {
 
     pub fn increase_raydium_liquidity<'a, 'b, 'c: 'info, 'info>(
         ctx: Context<'a, 'b, 'c, 'info, IncreaseRaydiumLiquidity<'info>>,
+        reciever: Pubkey,
         liquidity: u128,
         amount_0_max: u64,
         amount_1_max: u64,
         base_flag: Option<bool>,
     ) -> Result<()> {
-        increase_raydium_liquidity::handler(ctx, liquidity, amount_0_max, amount_1_max, base_flag)
+        increase_raydium_liquidity::handler(
+            ctx,
+            reciever,
+            liquidity,
+            amount_0_max,
+            amount_1_max,
+            base_flag,
+        )
     }
 
     pub fn decrease_raydium_liquidity(ctx: Context<DecreaseRaydiumLiquidity>) -> Result<()> {

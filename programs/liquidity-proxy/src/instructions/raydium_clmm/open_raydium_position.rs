@@ -20,6 +20,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
+#[instruction(tick_lower_index: i32, tick_upper_index: i32)]
 pub struct OpenRaydiumPosition<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -31,6 +32,13 @@ pub struct OpenRaydiumPosition<'info> {
         init,
         payer = signer,
         space = 8 + RaydiumProtocolPosition::INIT_SPACE,
+        seeds = [
+            b"raydium_protocol_position",
+            pool_state.key().as_ref(),
+            &tick_lower_index.to_le_bytes(),
+            &tick_upper_index.to_le_bytes(),
+        ],
+        bump,
     )]
     pub raydium_protocol_position: Account<'info, RaydiumProtocolPosition>,
 
@@ -48,13 +56,6 @@ pub struct OpenRaydiumPosition<'info> {
     pub raydium_user_position: Account<'info, RaydiumUserPosition>,
 
     pub clmm_program: Program<'info, AmmV3>,
-    /// Pays to mint the position
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    /// CHECK: Receives the position NFT
-    #[account(mut)]
-    pub position_nft_owner: UncheckedAccount<'info>,
 
     /// CHECK: Unique token mint address, random keypair
     #[account(mut)]
@@ -121,6 +122,34 @@ pub struct OpenRaydiumPosition<'info> {
         // bump,
     )]
     pub personal_position: UncheckedAccount<'info>,
+
+    #[account(
+        init,
+        payer = signer,
+        seeds = [
+            b"position_vault",
+            raydium_protocol_position.key().as_ref(),
+            vault_0_mint.key().as_ref(),
+        ],
+        bump,
+        token::mint = vault_0_mint,
+        token::authority = raydium_protocol_position,
+    )]
+    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        init,
+        payer = signer,
+        seeds = [
+            b"position_vault",
+            raydium_protocol_position.key().as_ref(),
+            vault_1_mint.key().as_ref(),
+        ],
+        bump,
+        token::mint = vault_1_mint,
+        token::authority = raydium_protocol_position,
+    )]
+    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// The token_0 account deposit token to the pool
     #[account(
@@ -205,8 +234,8 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
     }
 
     let cpi_accounts = cpi::accounts::OpenPositionV2 {
-        payer: ctx.accounts.payer.to_account_info(),
-        position_nft_owner: ctx.accounts.position_nft_owner.to_account_info(),
+        payer: ctx.accounts.signer.to_account_info(),
+        position_nft_owner: ctx.accounts.raydium_protocol_position.to_account_info(),
         position_nft_mint: ctx.accounts.position_nft_mint.to_account_info(),
         position_nft_account: ctx.accounts.position_nft_account.to_account_info(),
         metadata_account: ctx.accounts.metadata_account.to_account_info(),
@@ -228,6 +257,7 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         vault_0_mint: ctx.accounts.vault_0_mint.to_account_info(),
         vault_1_mint: ctx.accounts.vault_1_mint.to_account_info(),
     };
+
     let cpi_context = CpiContext::new(ctx.accounts.clmm_program.to_account_info(), cpi_accounts)
         .with_remaining_accounts(ctx.remaining_accounts.to_vec());
     cpi::open_position_v2(
@@ -250,6 +280,20 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
     };
 
     // init protocol position
+    // FIXME: use ctx.bumps
+    let protocol_position_bump = {
+        let (_, bump) = Pubkey::find_program_address(
+            &[
+                b"raydium_protocol_position",
+                ctx.accounts.pool_state.key().as_ref(),
+                &tick_lower_index.to_le_bytes(),
+                &tick_upper_index.to_le_bytes(),
+            ],
+            &crate::id(),
+        );
+        bump
+    };
+    ctx.accounts.raydium_protocol_position.bump = protocol_position_bump;
     ctx.accounts.raydium_protocol_position.config = ctx.accounts.config.key();
     ctx.accounts.raydium_protocol_position.raydium_pool = ctx.accounts.pool_state.key();
     ctx.accounts.raydium_protocol_position.raydium_position_nft =
@@ -259,9 +303,25 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         protocol_position.fee_growth_inside_0_last_x64;
     ctx.accounts.raydium_protocol_position.fee_growth_inside_1_last_x64 =
         protocol_position.fee_growth_inside_1_last_x64;
+    ctx.accounts.raydium_protocol_position.tick_lower_index = tick_lower_index;
+    ctx.accounts.raydium_protocol_position.tick_upper_index = tick_upper_index;
+    ctx.accounts.raydium_protocol_position.position_vault_0 = ctx.accounts.position_vault_0.key();
+    ctx.accounts.raydium_protocol_position.position_vault_1 = ctx.accounts.position_vault_1.key();
 
     // init user position
-    ctx.accounts.raydium_user_position.bump = ctx.bumps.raydium_user_position;
+    // FIXME: use ctx.bumps
+    let user_position_bump = {
+        let (_, bump) = Pubkey::find_program_address(
+            &[
+                b"raydium_user_position",
+                ctx.accounts.raydium_protocol_position.key().as_ref(),
+                ctx.accounts.signer.key().as_ref(),
+            ],
+            &crate::id(),
+        );
+        bump
+    };
+    ctx.accounts.raydium_user_position.bump = user_position_bump;
     ctx.accounts.raydium_user_position.shares = liquidity;
     ctx.accounts.raydium_user_position.owner = ctx.accounts.signer.key();
     ctx.accounts.raydium_user_position.raydium_protocol_position =

@@ -47,6 +47,18 @@ pub struct IncreaseRaydiumLiquidity<'info> {
     )]
     pub raydium_user_position: Box<Account<'info, RaydiumUserPosition>>,
 
+    #[account(
+        mut,
+        token::mint = token_vault_0.mint
+    )]
+    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = token_vault_1.mint
+    )]
+    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
+
     pub clmm_program: Program<'info, AmmV3>,
 
     /// The token account for nft
@@ -99,18 +111,6 @@ pub struct IncreaseRaydiumLiquidity<'info> {
         token::mint = token_vault_1.mint
     )]
     pub token_account_1: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    #[account(
-        mut,
-        token::mint = token_vault_0.mint
-    )]
-    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    #[account(
-        mut,
-        token::mint = token_vault_1.mint
-    )]
-    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// The address that holds pool tokens for token_0
     #[account(

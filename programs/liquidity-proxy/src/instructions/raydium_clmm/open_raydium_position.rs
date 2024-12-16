@@ -56,6 +56,34 @@ pub struct OpenRaydiumPosition<'info> {
     )]
     pub raydium_user_position: Account<'info, RaydiumUserPosition>,
 
+    #[account(
+        init,
+        payer = signer,
+        seeds = [
+            POSITION_VAULT_SEED.as_bytes(),
+            raydium_protocol_position.key().as_ref(),
+            vault_0_mint.key().as_ref(),
+        ],
+        bump,
+        token::mint = vault_0_mint,
+        token::authority = raydium_protocol_position,
+    )]
+    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        init,
+        payer = signer,
+        seeds = [
+            POSITION_VAULT_SEED.as_bytes(),
+            raydium_protocol_position.key().as_ref(),
+            vault_1_mint.key().as_ref(),
+        ],
+        bump,
+        token::mint = vault_1_mint,
+        token::authority = raydium_protocol_position,
+    )]
+    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
+
     pub clmm_program: Program<'info, AmmV3>,
 
     /// CHECK: Unique token mint address, random keypair
@@ -123,34 +151,6 @@ pub struct OpenRaydiumPosition<'info> {
         // bump,
     )]
     pub personal_position: UncheckedAccount<'info>,
-
-    #[account(
-        init,
-        payer = signer,
-        seeds = [
-            POSITION_VAULT_SEED.as_bytes(),
-            raydium_protocol_position.key().as_ref(),
-            vault_0_mint.key().as_ref(),
-        ],
-        bump,
-        token::mint = vault_0_mint,
-        token::authority = raydium_protocol_position,
-    )]
-    pub position_vault_0: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    #[account(
-        init,
-        payer = signer,
-        seeds = [
-            POSITION_VAULT_SEED.as_bytes(),
-            raydium_protocol_position.key().as_ref(),
-            vault_1_mint.key().as_ref(),
-        ],
-        bump,
-        token::mint = vault_1_mint,
-        token::authority = raydium_protocol_position,
-    )]
-    pub position_vault_1: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// The token_0 account deposit token to the pool
     #[account(

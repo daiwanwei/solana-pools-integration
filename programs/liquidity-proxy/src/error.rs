@@ -19,4 +19,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid liquidity")]
     InvalidLiquidity,
+
+    #[msg("Protocol position not empty")]
+    ProtocolPositionNotEmpty,
 }

@@ -278,5 +278,49 @@ describe("liquidity-proxy", () => {
       await prepareTx(client, userWallet.publicKey, [decreaseRaydiumLiquidityIx]),
       [],
     );
+    const decreaseRaydiumLiquidityFromAdminIx = await program.methods
+      .decreaseRaydiumLiquidity(new BN(10), new BN(0), new BN(0))
+      .accounts({
+        signer: admin,
+        config,
+        raydiumProtocolPosition: raydiumProtocolPosition,
+        raydiumUserPosition: adminPositionPda,
+        positionVault0: positionVault0Pda,
+        positionVault1: positionVault1Pda,
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftAccount: nftAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
+    const closeRaydiumPositionIx = await program.methods
+      .closeRaydiumPosition()
+      .accounts({
+        signer: admin,
+        config,
+        raydiumProtocolPosition: raydiumProtocolPosition,
+        clmmProgram: CLMM_PROGRAM_ID,
+        positionNftMint: positionMint.publicKey,
+        positionNftAccount: nftAccount,
+        personalPosition: position.publicKey,
+      })
+      .instruction();
+
+    await sendAndConfirm(
+      provider,
+      await prepareTx(client, admin, [decreaseRaydiumLiquidityFromAdminIx, closeRaydiumPositionIx]),
+      [],
+    );
   });
 });

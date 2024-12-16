@@ -79,7 +79,9 @@ pub mod liquidity_proxy {
         decrease_raydium_liquidity::handler(ctx, liquidity, amount_0_min, amount_1_min)
     }
 
-    pub fn close_raydium_position(ctx: Context<CloseRaydiumPosition>) -> Result<()> {
+    pub fn close_raydium_position<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, CloseRaydiumPosition<'info>>,
+    ) -> Result<()> {
         close_raydium_position::handler(ctx)
     }
 

@@ -183,7 +183,7 @@ describe("liquidity-proxy", () => {
         new BN(100_000_000),
         new BN(100_000_000),
         new BN(100_000_000),
-        false
+        false,
       )
       .accounts({
         signer: userWallet.publicKey,
@@ -212,6 +212,38 @@ describe("liquidity-proxy", () => {
     await sendAndConfirm(
       provider,
       await prepareTx(client, userWallet.publicKey, [increaseRaydiumLiquidityIx]),
+      [],
+    );
+
+    const harvestRaydiumPositionIx = await program.methods
+      .harvestRaydiumPosition()
+      .accounts({
+        signer: userWallet.publicKey,
+        config,
+        raydiumProtocolPosition: raydiumProtocolPosition,
+        raydiumUserPosition: userPositionPda,
+        positionVault0: positionVault0Pda,
+        positionVault1: positionVault1Pda,
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftAccount: nftAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
+    await sendAndConfirm(
+      provider,
+      await prepareTx(client, userWallet.publicKey, [harvestRaydiumPositionIx]),
       [],
     );
 

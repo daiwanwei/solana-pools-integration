@@ -83,7 +83,9 @@ pub mod liquidity_proxy {
         close_raydium_position::handler(ctx)
     }
 
-    pub fn harvest_raydium_position(ctx: Context<HarvestRaydiumPosition>) -> Result<()> {
+    pub fn harvest_raydium_position<'a, 'b, 'c: 'info, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, HarvestRaydiumPosition<'info>>,
+    ) -> Result<()> {
         harvest_raydium_position::handler(ctx)
     }
 }

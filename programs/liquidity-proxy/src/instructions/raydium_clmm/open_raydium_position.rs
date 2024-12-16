@@ -12,6 +12,7 @@ use raydium_clmm_cpi::{
 };
 
 use crate::{
+    constants::{POSITION_VAULT_SEED, RAYDIUM_PROTOCOL_POSITION_SEED, RAYDIUM_USER_POSITION_SEED},
     error::ErrorCode,
     state::{
         config::Config, protocol_position::RaydiumProtocolPosition,
@@ -33,7 +34,7 @@ pub struct OpenRaydiumPosition<'info> {
         payer = signer,
         space = 8 + RaydiumProtocolPosition::INIT_SPACE,
         seeds = [
-            b"raydium_protocol_position",
+            RAYDIUM_PROTOCOL_POSITION_SEED.as_bytes(),
             pool_state.key().as_ref(),
             &tick_lower_index.to_le_bytes(),
             &tick_upper_index.to_le_bytes(),
@@ -47,7 +48,7 @@ pub struct OpenRaydiumPosition<'info> {
         payer = signer,
         space = 8 + RaydiumUserPosition::INIT_SPACE,
         seeds = [
-            b"raydium_user_position",
+            RAYDIUM_USER_POSITION_SEED.as_bytes(),
             raydium_protocol_position.key().as_ref(),
             signer.key().as_ref(),
         ],
@@ -127,7 +128,7 @@ pub struct OpenRaydiumPosition<'info> {
         init,
         payer = signer,
         seeds = [
-            b"position_vault",
+            POSITION_VAULT_SEED.as_bytes(),
             raydium_protocol_position.key().as_ref(),
             vault_0_mint.key().as_ref(),
         ],
@@ -141,7 +142,7 @@ pub struct OpenRaydiumPosition<'info> {
         init,
         payer = signer,
         seeds = [
-            b"position_vault",
+            POSITION_VAULT_SEED.as_bytes(),
             raydium_protocol_position.key().as_ref(),
             vault_1_mint.key().as_ref(),
         ],
@@ -284,7 +285,7 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
     let protocol_position_bump = {
         let (_, bump) = Pubkey::find_program_address(
             &[
-                b"raydium_protocol_position",
+                &RAYDIUM_PROTOCOL_POSITION_SEED.as_bytes(),
                 ctx.accounts.pool_state.key().as_ref(),
                 &tick_lower_index.to_le_bytes(),
                 &tick_upper_index.to_le_bytes(),
@@ -313,7 +314,7 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
     let user_position_bump = {
         let (_, bump) = Pubkey::find_program_address(
             &[
-                b"raydium_user_position",
+                &RAYDIUM_USER_POSITION_SEED.as_bytes(),
                 ctx.accounts.raydium_protocol_position.key().as_ref(),
                 ctx.accounts.signer.key().as_ref(),
             ],

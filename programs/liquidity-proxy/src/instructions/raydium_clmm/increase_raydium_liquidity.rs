@@ -13,6 +13,7 @@ use raydium_clmm_cpi::{
 };
 
 use crate::{
+    constants::{RAYDIUM_PROTOCOL_POSITION_SEED, RAYDIUM_USER_POSITION_SEED},
     error::ErrorCode,
     state::{
         config::Config, protocol_position::RaydiumProtocolPosition,
@@ -38,7 +39,7 @@ pub struct IncreaseRaydiumLiquidity<'info> {
         payer = signer,
         space = 8 + RaydiumUserPosition::INIT_SPACE,
         seeds = [
-            b"raydium_user_position",
+            &RAYDIUM_USER_POSITION_SEED.as_bytes(),
             raydium_protocol_position.key().as_ref(),
             reciever.as_ref(),
         ],
@@ -209,7 +210,7 @@ pub fn handler<'a, 'b, 'c: 'info, 'info>(
         let tick_upper_index = ctx.accounts.raydium_protocol_position.tick_upper_index;
         let bump = ctx.accounts.raydium_protocol_position.bump;
         [&[
-            b"raydium_protocol_position",
+            &RAYDIUM_PROTOCOL_POSITION_SEED.as_bytes(),
             pool_state_key.as_ref(),
             &tick_lower_index.to_le_bytes(),
             &tick_upper_index.to_le_bytes(),

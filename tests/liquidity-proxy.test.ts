@@ -13,6 +13,7 @@ import {
   getPdaProtocolPositionAddress,
   getPdaMetadataKey,
   TickUtils as RaydiumTickUtils,
+  MEMO_PROGRAM_ID,
 } from "@raydium-io/raydium-sdk-v2";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
@@ -176,38 +177,13 @@ describe("liquidity-proxy", () => {
       program.programId,
     );
 
-    const accounts = {
-      signer: userWallet.publicKey,
-      config,
-      raydiumProtocolPosition: raydiumProtocolPosition,
-      raydiumUserPosition: userPositionPda,
-      positionVault0: positionVault0Pda,
-      positionVault1: positionVault1Pda,
-      clmmProgram: CLMM_PROGRAM_ID,
-      nftAccount: nftAccount,
-      poolState: poolInfo.clmmPool,
-      protocolPosition: protocolPositionPda.publicKey,
-      personalPosition: position.publicKey,
-      tickArrayLower: tickArrayLower.publicKey,
-      tickArrayUpper: tickArrayUpper.publicKey,
-      tokenAccount0: userTokenAAccount,
-      tokenAccount1: userTokenBAccount,
-      tokenVault0: poolInfo.tokenAVault,
-      tokenVault1: poolInfo.tokenBVault,
-      vault0Mint: poolInfo.tokenAMint,
-      vault1Mint: poolInfo.tokenBMint,
-    };
-
-    for (let [key, value] of Object.entries(accounts)) {
-      console.log(key, value.toString());
-    }
     const increaseRaydiumLiquidityIx = await program.methods
       .increaseRaydiumLiquidity(
         userWallet.publicKey,
-        new BN(10),
         new BN(100_000_000),
         new BN(100_000_000),
-        false,
+        new BN(100_000_000),
+        false
       )
       .accounts({
         signer: userWallet.publicKey,
@@ -233,14 +209,41 @@ describe("liquidity-proxy", () => {
       .signers([userWallet])
       .instruction();
 
-    // await sendAndConfirm(
-    //   provider,
-    //   await prepareTx(client, userWallet.publicKey, [increaseRaydiumLiquidityIx]),
-    //   []
-    // );
-    await testFixture.prepareAndProcessTransaction(
-      [increaseRaydiumLiquidityIx],
-      userWallet.publicKey,
+    await sendAndConfirm(
+      provider,
+      await prepareTx(client, userWallet.publicKey, [increaseRaydiumLiquidityIx]),
+      [],
+    );
+
+    const decreaseRaydiumLiquidityIx = await program.methods
+      .decreaseRaydiumLiquidity(new BN(100_000_000), new BN(0), new BN(0))
+      .accounts({
+        signer: userWallet.publicKey,
+        config,
+        raydiumProtocolPosition: raydiumProtocolPosition,
+        raydiumUserPosition: userPositionPda,
+        positionVault0: positionVault0Pda,
+        positionVault1: positionVault1Pda,
+        clmmProgram: CLMM_PROGRAM_ID,
+        nftAccount: nftAccount,
+        poolState: poolInfo.clmmPool,
+        protocolPosition: protocolPositionPda.publicKey,
+        personalPosition: position.publicKey,
+        tickArrayLower: tickArrayLower.publicKey,
+        tickArrayUpper: tickArrayUpper.publicKey,
+        recipientTokenAccount0: userTokenAAccount,
+        recipientTokenAccount1: userTokenBAccount,
+        tokenVault0: poolInfo.tokenAVault,
+        tokenVault1: poolInfo.tokenBVault,
+        vault0Mint: poolInfo.tokenAMint,
+        vault1Mint: poolInfo.tokenBMint,
+        memoProgram: MEMO_PROGRAM_ID,
+      })
+      .instruction();
+
+    await sendAndConfirm(
+      provider,
+      await prepareTx(client, userWallet.publicKey, [decreaseRaydiumLiquidityIx]),
       [],
     );
   });

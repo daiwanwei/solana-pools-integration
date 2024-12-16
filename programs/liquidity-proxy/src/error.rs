@@ -13,4 +13,10 @@ pub enum ErrorCode {
 
     #[msg("Overflow")]
     Overflow,
+
+    #[msg("Insufficient liquidity")]
+    InsufficientLiquidity,
+
+    #[msg("Invalid liquidity")]
+    InvalidLiquidity,
 }
